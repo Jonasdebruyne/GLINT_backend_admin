@@ -6,8 +6,21 @@ const logger = require("morgan");
 const config = require("config");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const connection = config.get("mongodb");
 
+const app = express();
+
+// Poort instellen
+const PORT = process.env.PORT || 3000;
+
+// Configuratie op basis van de poort
+let connection;
+if (PORT === "3000") {
+  connection = config.get("mongodb"); // default.json voor lokale ontwikkeling
+} else {
+  connection = config.get("mongodb"); // production.json voor productie
+}
+
+// Verbinden met MongoDB
 mongoose
   .connect(connection)
   .then(() => console.log("MongoDB connected"))
@@ -17,9 +30,6 @@ mongoose
 const productRouter = require("./routes/api/v1/products");
 const userRouter = require("./routes/api/v1/users");
 const houseStyleRouter = require("./routes/api/v1/houseStyle");
-
-// Express-app
-const app = express();
 
 // View engine instellen
 app.set("views", path.join(__dirname, "views"));
@@ -49,6 +59,11 @@ app.use(function (err, req, res, next) {
   res.locals.error = req.app.get("env") === "development" ? err : {};
   res.status(err.status || 500);
   res.render("error");
+});
+
+// Server starten
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
 
 module.exports = app;
