@@ -15,7 +15,7 @@ const houseStyleRouter = require("./routes/api/v1/housestyle");
 const app = express();
 
 // Set the port
-const PORT = process.env.PORT || 3000; // Gebruik poort uit omgevingsvariabelen of 3000 als standaard
+const PORT = process.env.PORT || 3001; // Gebruik poort uit omgevingsvariabelen of 3000 als standaard
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "jade");
