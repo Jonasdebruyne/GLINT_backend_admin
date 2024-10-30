@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const houseStyleController = require("../../../controllers/api/v1/housestyle");
+const houseStyleController = require("../../../controllers/api/v1/houseStyle");
 
 // Route voor het aanmaken van een huisstijl
 router.post("/", houseStyleController.create);
