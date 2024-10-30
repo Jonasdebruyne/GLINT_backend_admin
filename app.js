@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 const connection = config.get("mongodb");
 
 mongoose
-  .connect(connection, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(connection)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
