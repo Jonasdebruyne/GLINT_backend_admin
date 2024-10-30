@@ -11,7 +11,7 @@ const mongoose = require("mongoose");
 mongoose.connect(connection);
 const productRouter = require("./routes/api/v1/products");
 const userRouter = require("./routes/api/v1/users");
-const houseStyleRouter = require("./routes/api/v1/housestyle");
+const houseStyleRouter = require("./routes/api/v1/houseStyle");
 const app = express();
 
 // Set the port
