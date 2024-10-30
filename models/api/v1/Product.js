@@ -12,8 +12,8 @@ const ProductSchema = new mongoose.Schema({
   typeOfProduct: {
     type: String,
     required: false,
-    enum: ["glasses", "sunglasses"],
-    default: "glasses",
+    enum: ["optical", "sun"],
+    default: "optcial",
   },
   description: {
     type: String,
