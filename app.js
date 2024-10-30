@@ -30,7 +30,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/products", productRouter);
-app.use("/api/v1/housestyle", houseStyleRouter);
+app.use("/api/v1/houseStyle", houseStyleRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
