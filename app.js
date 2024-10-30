@@ -5,9 +5,13 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const config = require("config");
 const cors = require("cors");
-const connection = config.get("mongodb");
 const mongoose = require("mongoose");
-mongoose.connect(connection);
+const connection = config.get("mongodb");
+
+mongoose
+  .connect(connection, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Routers
 const productRouter = require("./routes/api/v1/products");
