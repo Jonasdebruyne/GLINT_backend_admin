@@ -8,6 +8,7 @@ const create = async (req, res) => {
     !product ||
     !product.productCode ||
     !product.productName ||
+    !product.productPrice ||
     !product.typeOfProduct ||
     !product.description || // Ensure description is in the request body
     !product.brand || // Ensure brand is in the request body
@@ -31,6 +32,7 @@ const create = async (req, res) => {
   const {
     productCode,
     productName,
+    productPrice,
     typeOfProduct,
     description,
     brand,
@@ -43,6 +45,7 @@ const create = async (req, res) => {
     const p = new Product({
       productCode,
       productName,
+      productPrice,
       typeOfProduct,
       description,
       brand,
