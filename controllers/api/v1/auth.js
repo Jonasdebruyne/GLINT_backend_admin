@@ -205,11 +205,7 @@ const update = async (req, res) => {
   }
 
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { $set: userData },
-      { new: true, runValidators: true }
-    );
+    const updatedUser = await User.findById(id);
 
     if (!updatedUser) {
       return res.status(404).json({
@@ -217,6 +213,39 @@ const update = async (req, res) => {
         message: "User not found",
       });
     }
+
+    const { oldPassword, newPassword } = userData;
+
+    // Controleer of er een nieuw wachtwoord is opgegeven
+    if (newPassword) {
+      // Als er een nieuw wachtwoord is opgegeven, controleer dan het oude wachtwoord
+      if (!oldPassword) {
+        return res.status(400).json({
+          status: "error",
+          message: "Old password is required to change the password",
+        });
+      }
+
+      // Controleer of het oude wachtwoord overeenkomt
+      const isMatch = await updatedUser.isValidPassword(oldPassword);
+
+      // Als het oude wachtwoord onjuist is, geef dan een foutstatus terug
+      if (!isMatch.user) {
+        return res.status(401).json({
+          status: "error",
+          message: "Old password is incorrect",
+        });
+      }
+
+      // Stel het nieuwe wachtwoord in
+      await updatedUser.setPassword(newPassword);
+    }
+
+    // Update andere gebruikersgegevens indien nodig
+    Object.assign(updatedUser, userData);
+
+    // Sla de wijzigingen op
+    await updatedUser.save();
 
     res.json({
       status: "success",
@@ -228,11 +257,11 @@ const update = async (req, res) => {
           id: updatedUser._id,
           role: updatedUser.role,
           activeUnactive: updatedUser.activeUnactive,
-          country: updatedUser.country, // Nieuwe velden
-          city: updatedUser.city, // Nieuwe velden
-          postalCode: updatedUser.postalCode, // Nieuwe velden
-          profileImage: updatedUser.profileImage, // Nieuwe velden
-          bio: updatedUser.bio, // Nieuwe velden
+          country: updatedUser.country,
+          city: updatedUser.city,
+          postalCode: updatedUser.postalCode,
+          profileImage: updatedUser.profileImage,
+          bio: updatedUser.bio,
         },
       },
     });
