@@ -17,7 +17,7 @@ const ProductSchema = new mongoose.Schema({
     type: String,
     required: false,
     enum: ["optical", "sun"],
-    default: "optcial",
+    default: "optical",
   },
   description: {
     type: String,
