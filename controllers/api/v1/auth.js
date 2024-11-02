@@ -299,14 +299,83 @@ const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    // Controleer of de gebruiker met het gegeven e-mailadres bestaat
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Hier kun je een token genereren
-    const token = jwt.sign(
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    user.resetCode = verificationCode;
+    user.resetCodeExpiration = Date.now() + 3600000; // 1 uur geldig
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      host: "smtp-auth.mailprotect.be",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.COMBELL_EMAIL,
+        pass: process.env.COMBELL_PASSWORD,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.COMBELL_EMAIL,
+      to: user.email,
+      subject: "Wachtwoord reset verificatiecode",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 10px;">
+          <h2 style="color: #9747ff; text-align: center;">Wachtwoord reset verificatie</h2>
+          <p style="color: #000;">Hallo ${user.firstname},</p>
+          <p style="color: #000;">Je hebt een verzoek ingediend om je wachtwoord opnieuw in te stellen. Gebruik de volgende code om je wachtwoord te resetten:</p>
+          <div style="font-size: 24px; font-weight: bold; color: #9747ff; text-align: center; padding: 15px; border: 1px solid #9747ff; border-radius: 8px; background-color: #f0f8ff;">
+            ${verificationCode}
+          </div>
+          <p style="color: #000;">Bedankt,<br>Het Support Team</p>
+          <footer style="margin-top: 30px; text-align: center; font-size: 12px; color: #888;">
+            &copy; ${new Date().getFullYear()} GLINT. Alle rechten voorbehouden.
+          </footer>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Verificatiecode verzonden" });
+  } catch (error) {
+    console.error("Fout bij wachtwoord reset:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const verifyCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "Gebruiker niet gevonden." });
+    }
+
+    console.log("Gebruiker gevonden:", user);
+
+    if (!user.resetCode) {
+      return res
+        .status(400)
+        .json({ message: "Geen verificatiecode gevonden." });
+    }
+
+    if (user.resetCodeExpiration < Date.now()) {
+      return res
+        .status(400)
+        .json({ message: "De verificatiecode is verlopen." });
+    }
+
+    if (code !== user.resetCode.toString()) {
+      return res.status(400).json({ message: "Ongeldige verificatiecode." });
+    }
+
+    const newToken = jwt.sign(
       {
         userId: user._id,
         firstname: user.firstname,
@@ -317,36 +386,12 @@ const forgotPassword = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    const nodemailer = require("nodemailer");
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp-auth.mailprotect.be",
-      port: 587, // of 465 voor SSL
-      secure: false, // true voor 465, false voor andere poorten
-      auth: {
-        user: process.env.COMBELL_EMAIL, // je volledige e-mailadres
-        pass: process.env.COMBELL_PASSWORD, // je e-mailwachtwoord
-      },
-    });
-
-    const resetLink = `http://yourdomain.com/reset-password/${token}`;
-
-    const mailOptions = {
-      from: process.env.COMBELL_EMAIL,
-      to: user.email, // Stuur de e-mail naar de gebruiker
-      subject: "Wachtwoord reset",
-      text: `Klik op de volgende link om je wachtwoord opnieuw in te stellen: ${resetLink}`,
-    };
-
-    console.log("Email:", process.env.COMBELL_EMAIL);
-    console.log("Password:", process.env.COMBELL_PASSWORD);
-
-    // Verstuur de e-mail met await
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "Password reset email sent" });
+    return res
+      .status(200)
+      .json({ message: "Verificatiecode is correct.", token: newToken });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Fout bij het verifiëren van de code:", error.message);
+    return res.status(500).json({ message: "Er is een fout opgetreden." });
   }
 };
 
@@ -358,4 +403,5 @@ module.exports = {
   update,
   show,
   forgotPassword,
+  verifyCode,
 };

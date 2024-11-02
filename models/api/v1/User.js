@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema({
   postalCode: { type: String, default: "" },
   profileImage: { type: String, default: "" },
   bio: { type: String, default: "" },
+  resetCode: Number,
+  resetCodeExpiration: Date,
 });
 
 // Voeg de plugin toe voor wachtwoordbeheer

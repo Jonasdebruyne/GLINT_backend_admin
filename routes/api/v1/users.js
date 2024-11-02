@@ -9,5 +9,6 @@ router.get("/:id", authController.show);
 router.put("/:id", authController.update);
 router.delete("/:id", authController.destroy);
 router.post("/forgot-password", authController.forgotPassword);
+router.post("/verify-code", authController.verifyCode);
 
 module.exports = router;
