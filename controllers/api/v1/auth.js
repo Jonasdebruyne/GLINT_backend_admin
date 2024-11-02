@@ -395,6 +395,46 @@ const verifyCode = async (req, res) => {
   }
 };
 
+const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Hier is de controle voor de verificatiecode verwijderd.
+    if (!user.resetCode) {
+      return res.status(400).json({ message: "No verification code found." });
+    }
+
+    // Controleer of de verificatiecode is verlopen
+    if (user.resetCodeExpiration < Date.now()) {
+      return res
+        .status(400)
+        .json({ message: "The verification code has expired." });
+    }
+
+    // Dit is de controle voor de verificatiecode verwijderd.
+    // if (code !== user.resetCode.toString()) {
+    //   return res.status(400).json({ message: "Invalid verification code." });
+    // }
+
+    // Stel het nieuwe wachtwoord in
+    await user.setPassword(newPassword);
+    user.resetCode = undefined; // Reset de verificatiecode
+    user.resetCodeExpiration = undefined; // Reset de vervaldatum van de verificatiecode
+    await user.save();
+
+    res.status(200).json({ message: "Password has been reset successfully." });
+  } catch (error) {
+    console.error("Error during password reset:", error.message);
+    return res.status(500).json({ message: "An error occurred." });
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -404,4 +444,5 @@ module.exports = {
   show,
   forgotPassword,
   verifyCode,
+  resetPassword,
 };
