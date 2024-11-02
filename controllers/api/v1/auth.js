@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../../../models/api/v1/User");
+const nodemailer = require("nodemailer");
+require("dotenv").config();
 
 const signup = async (req, res) => {
   try {
@@ -293,6 +295,61 @@ const destroy = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Controleer of de gebruiker met het gegeven e-mailadres bestaat
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Hier kun je een token genereren
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        role: user.role,
+      },
+      "MyVerySecretWord",
+      { expiresIn: "1h" }
+    );
+
+    const nodemailer = require("nodemailer");
+
+    const transporter = nodemailer.createTransport({
+      host: "smtp-auth.mailprotect.be",
+      port: 587, // of 465 voor SSL
+      secure: false, // true voor 465, false voor andere poorten
+      auth: {
+        user: process.env.COMBELL_EMAIL, // je volledige e-mailadres
+        pass: process.env.COMBELL_PASSWORD, // je e-mailwachtwoord
+      },
+    });
+
+    const resetLink = `http://yourdomain.com/reset-password/${token}`;
+
+    const mailOptions = {
+      from: process.env.COMBELL_EMAIL,
+      to: user.email, // Stuur de e-mail naar de gebruiker
+      subject: "Wachtwoord reset",
+      text: `Klik op de volgende link om je wachtwoord opnieuw in te stellen: ${resetLink}`,
+    };
+
+    console.log("Email:", process.env.COMBELL_EMAIL);
+    console.log("Password:", process.env.COMBELL_PASSWORD);
+
+    // Verstuur de e-mail met await
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Password reset email sent" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -300,4 +357,5 @@ module.exports = {
   index,
   update,
   show,
+  forgotPassword,
 };

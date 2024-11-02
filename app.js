@@ -6,6 +6,9 @@ const logger = require("morgan");
 const config = require("config");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 
