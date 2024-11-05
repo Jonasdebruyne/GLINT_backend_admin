@@ -99,6 +99,43 @@ const index = async (req, res) => {
   }
 };
 
+const show = async (req, res) => {
+  try {
+    const { productCode } = req.params;
+
+    // Ensure productCode is provided
+    if (!productCode) {
+      return res.status(400).json({
+        status: "error",
+        message: "Product code is required to retrieve a single product",
+      });
+    }
+
+    const product = await Product.findOne({ productCode });
+
+    // If the product does not exist
+    if (!product) {
+      return res.status(404).json({
+        status: "error",
+        message: "Product not found",
+      });
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        product: product,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Could not retrieve product",
+      error: error.message,
+    });
+  }
+};
+
 const update = async (req, res) => {
   const productData = req.body.product;
   const { id } = req.params; // Zorg ervoor dat je de id uit de params haalt
@@ -159,6 +196,7 @@ const destroy = async (req, res, next) => {
 module.exports = {
   create,
   index,
+  show,
   update,
   destroy,
 };
