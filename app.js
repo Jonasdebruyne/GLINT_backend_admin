@@ -33,6 +33,7 @@ mongoose
 const productRouter = require("./routes/api/v1/products");
 const userRouter = require("./routes/api/v1/users");
 const houseStyleRouter = require("./routes/api/v1/houseStyle");
+const orderRouter = require("./routes/api/v1/orders");
 
 // View engine instellen
 app.set("views", path.join(__dirname, "views"));
@@ -50,6 +51,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/houseStyle", houseStyleRouter);
+app.use("/api/v1/orders", orderRouter);
 
 // Foutafhandeling voor 404
 app.use(function (req, res, next) {
