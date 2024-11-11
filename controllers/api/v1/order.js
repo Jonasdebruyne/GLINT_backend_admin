@@ -131,19 +131,61 @@ const show = async (req, res) => {
 
 const update = async (req, res) => {
   const { orderId } = req.params;
-  const orderData = req.body;
+  let orderData = req.body;
 
-  if (!orderData) {
+  // Controleer of orderId en orderData aanwezig zijn
+  if (!orderId || !orderData) {
     return res.status(400).json({
       status: "error",
-      message: "Order data is required for update",
+      message: "Order ID and order data are required for update",
     });
   }
 
+  // Specificeer de velden die we willen toestaan voor update
+  const allowedFields = [
+    "orderStatus",
+    "shippingAddress",
+    "totalPrice",
+    "products",
+  ];
+  const filteredData = {};
+
+  // Zorg ervoor dat alleen de toegestane velden worden meegegeven
+  allowedFields.forEach((field) => {
+    if (orderData[field] !== undefined) {
+      filteredData[field] = orderData[field];
+    }
+  });
+
+  // Als we producten bijwerken, moeten we de totaalprijs herberekenen
+  if (filteredData.products) {
+    try {
+      let totalPrice = 0;
+      for (const item of filteredData.products) {
+        const product = await Product.findById(item.productId);
+        if (!product) {
+          return res.status(404).json({
+            status: "error",
+            message: `Product with ID ${item.productId} not found.`,
+          });
+        }
+        totalPrice += product.productPrice * item.quantity;
+      }
+      filteredData.totalPrice = totalPrice;
+    } catch (err) {
+      return res.status(500).json({
+        status: "error",
+        message: "Error calculating total price",
+        error: err.message || err,
+      });
+    }
+  }
+
   try {
+    // Update de bestelling met de gefilterde gegevens
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
-      { $set: orderData },
+      { $set: filteredData },
       { new: true, runValidators: true }
     );
 

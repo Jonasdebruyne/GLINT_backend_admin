@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const OrderSchema = new mongoose.Schema({
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Customer",
+    ref: "User", // Change from "Customer" to "User"
     required: true,
   },
   orderDate: {
