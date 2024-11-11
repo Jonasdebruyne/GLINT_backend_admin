@@ -31,6 +31,10 @@ const create = async (req, res) => {
       }
       // Calculate total price
       totalPrice += product.productPrice * item.quantity;
+
+      // Optionally, add productName and productPrice to the products array in order
+      item.productPrice = product.productPrice;
+      item.productName = product.productName;
     }
 
     // Create order

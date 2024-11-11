@@ -2,14 +2,13 @@ const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema({
   customerId: {
-    type: mongoose.Schema.Types.ObjectId, // reference to the Customer model
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Customer",
     required: true,
-    ref: "Customer", // assuming there's a Customer model
   },
   orderDate: {
     type: Date,
     required: true,
-    default: Date.now,
   },
   orderStatus: {
     type: String,
@@ -20,22 +19,13 @@ const OrderSchema = new mongoose.Schema({
   products: [
     {
       productId: {
-        type: mongoose.Schema.Types.ObjectId, // reference to the Product model
-        required: true,
-        ref: "Product", // assuming you still have the Product model
-      },
-      productName: {
-        type: String,
-        required: true,
-      },
-      productPrice: {
-        type: Number,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
         required: true,
       },
       quantity: {
         type: Number,
         required: true,
-        min: 1,
       },
     },
   ],
@@ -44,7 +34,7 @@ const OrderSchema = new mongoose.Schema({
     required: true,
   },
   shippingAddress: {
-    type: String,
+    type: Object, // Changed from String to Object
     required: true,
   },
   paymentStatus: {
@@ -52,14 +42,6 @@ const OrderSchema = new mongoose.Schema({
     required: true,
     enum: ["pending", "completed", "failed"],
     default: "pending",
-  },
-  deliveryDate: {
-    type: Date,
-    required: false,
-  },
-  notes: {
-    type: String,
-    required: false,
   },
 });
 
