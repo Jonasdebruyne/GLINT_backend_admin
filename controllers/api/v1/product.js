@@ -1,5 +1,12 @@
 const jwt = require("jsonwebtoken");
 const Product = require("../../../models/api/v1/Product");
+require("dotenv").config(); // Zorg ervoor dat dotenv eerst wordt geladen
+const cloudinary = require("cloudinary").v2;
+
+// Cloudinary configureren
+cloudinary.config({
+  url: process.env.CLOUDINARY_URL, // Gebruik de volledige URL uit je .env bestand
+});
 
 const create = async (req, res) => {
   const product = req.body.product;
@@ -44,6 +51,27 @@ const create = async (req, res) => {
   } = product;
 
   try {
+    // Gebruik alleen originele afbeeldingen als ze in Cloudinary staan
+    let uploadedImages = [];
+
+    // Check of een afbeelding al een Cloudinary URL is
+    for (const image of images) {
+      if (image.startsWith("https://res.cloudinary.com")) {
+        // Voeg bestaande Cloudinary URLs toe zonder opnieuw te uploaden
+        uploadedImages.push(image);
+      } else {
+        // Upload de afbeelding naar Cloudinary en voeg de URL toe
+        const result = await cloudinary.uploader.upload(image, {
+          folder: "Odette Lunettes", // Foldernaam
+          resource_type: "auto", // Dit zorgt ervoor dat alle bestandstypen (zoals afbeeldingen en video's) goed worden verwerkt.
+          format: "png", // Dit zorgt ervoor dat de afbeelding als .jpg wordt opgeslagen
+        });
+
+        uploadedImages.push(result.secure_url);
+      }
+    }
+
+    // Maak het product aan met de correcte URLs
     const p = new Product({
       productCode,
       productName,
@@ -54,7 +82,7 @@ const create = async (req, res) => {
       colors,
       activeUnactive,
       glassColor,
-      images, // Pass images to the constructor
+      images: uploadedImages, // Gebruik alleen geüploade of originele URLs
     });
 
     await p.save();
