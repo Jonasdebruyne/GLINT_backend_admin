@@ -10,11 +10,12 @@ const create = async (req, res) => {
     !product.productName ||
     !product.productPrice ||
     !product.typeOfProduct ||
-    !product.description || // Ensure description is in the request body
-    !product.brand || // Ensure brand is in the request body
+    !product.description ||
+    !product.brand ||
     !product.colors ||
     !product.activeUnactive ||
-    !product.glassColor
+    !product.glassColor ||
+    !product.images // Ensure images are provided
   ) {
     return res.status(400).json({
       status: "error",
@@ -39,6 +40,7 @@ const create = async (req, res) => {
     colors,
     activeUnactive,
     glassColor,
+    images, // Extract images
   } = product;
 
   try {
@@ -52,6 +54,7 @@ const create = async (req, res) => {
       colors,
       activeUnactive,
       glassColor,
+      images, // Pass images to the constructor
     });
 
     await p.save();
