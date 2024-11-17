@@ -11,18 +11,20 @@ cloudinary.config({
 const create = async (req, res) => {
   const product = req.body.product;
 
+  // Validatie van vereiste velden
   if (
     !product ||
     !product.productCode ||
     !product.productName ||
     !product.productPrice ||
-    !product.typeOfProduct ||
     !product.description ||
     !product.brand ||
     !product.colors ||
-    !product.activeUnactive ||
-    !product.glassColor ||
-    !product.images // Ensure images are provided
+    !product.sizeOptions || // Toegevoegd als vereist
+    !product.material ||
+    !product.inStock || // Toegevoegd als vereist
+    !product.lacesColor || // `lacesColor` is nu verplicht
+    !product.soleColor // `soleColor` is nu verplicht
   ) {
     return res.status(400).json({
       status: "error",
@@ -30,7 +32,25 @@ const create = async (req, res) => {
     });
   }
 
-  if (!["active", "inactive"].includes(product.activeUnactive)) {
+  // Validatie voor typeOfProduct (indien aanwezig)
+  if (
+    product.typeOfProduct &&
+    !["sneaker", "boot", "sandals", "formal", "slippers"].includes(
+      product.typeOfProduct
+    )
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message:
+        "Invalid typeOfProduct, valid values are: sneaker, boot, sandals, formal, slippers.",
+    });
+  }
+
+  // Validatie voor activeUnactive (indien aanwezig)
+  if (
+    product.activeUnactive &&
+    !["active", "inactive"].includes(product.activeUnactive)
+  ) {
     return res.status(400).json({
       status: "error",
       message: "Invalid status, expected 'active' or 'inactive'.",
@@ -41,14 +61,41 @@ const create = async (req, res) => {
     productCode,
     productName,
     productPrice,
-    typeOfProduct,
+    typeOfProduct = "sneaker", // Standaardwaarde
     description,
     brand,
     colors,
-    activeUnactive,
-    glassColor,
-    images, // Extract images
+    sizeOptions,
+    activeUnactive = "active", // Standaardwaarde
+    material,
+    images = [], // Zet op lege array als geen afbeeldingen
+    inStock,
+    discount,
+    releaseDate,
+    lacesColor,
+    soleColor,
   } = product;
+
+  // Check of lacesColor en soleColor arrays zijn en strings bevatten
+  if (
+    !Array.isArray(lacesColor) ||
+    !lacesColor.every((color) => typeof color === "string")
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "lacesColor must be an array of strings.",
+    });
+  }
+
+  if (
+    !Array.isArray(soleColor) ||
+    !soleColor.every((color) => typeof color === "string")
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "soleColor must be an array of strings.",
+    });
+  }
 
   try {
     // Gebruik alleen originele afbeeldingen als ze in Cloudinary staan
@@ -64,7 +111,7 @@ const create = async (req, res) => {
         const result = await cloudinary.uploader.upload(image, {
           folder: "Odette Lunettes", // Foldernaam
           resource_type: "auto", // Dit zorgt ervoor dat alle bestandstypen (zoals afbeeldingen en video's) goed worden verwerkt.
-          format: "png", // Dit zorgt ervoor dat de afbeelding als .jpg wordt opgeslagen
+          format: "png", // Dit zorgt ervoor dat de afbeelding als .png wordt opgeslagen
         });
 
         uploadedImages.push(result.secure_url);
@@ -72,7 +119,7 @@ const create = async (req, res) => {
     }
 
     // Maak het product aan met de correcte URLs
-    const p = new Product({
+    const newProduct = new Product({
       productCode,
       productName,
       productPrice,
@@ -80,16 +127,23 @@ const create = async (req, res) => {
       description,
       brand,
       colors,
+      sizeOptions,
       activeUnactive,
-      glassColor,
+      material,
       images: uploadedImages, // Gebruik alleen geüploade of originele URLs
+      inStock,
+      discount,
+      releaseDate,
+      lacesColor, // Voeg lacesColor toe aan het product
+      soleColor, // Voeg soleColor toe aan het product
     });
 
-    await p.save();
+    // Sla het nieuwe product op in de database
+    await newProduct.save();
 
     res.json({
       status: "success",
-      data: { product: p },
+      data: { product: newProduct },
     });
   } catch (err) {
     console.error("Error saving product:", err);

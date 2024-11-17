@@ -17,8 +17,8 @@ const ProductSchema = new mongoose.Schema({
   typeOfProduct: {
     type: String,
     required: false,
-    enum: ["optical", "sun"],
-    default: "optical",
+    enum: ["sneaker", "boot", "sandals", "formal", "slippers"],
+    default: "sneaker",
   },
   description: {
     type: String,
@@ -32,24 +32,44 @@ const ProductSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
+  sizeOptions: {
+    type: [String],
+    required: true,
+  },
   activeUnactive: {
     type: String,
     required: false,
     enum: ["active", "inactive"],
     default: "active",
   },
-  glassColor: {
+  material: {
     type: String,
     required: true,
   },
   images: {
     type: [String],
+    required: true,
+  },
+  inStock: {
+    type: Number,
+    required: true,
+  },
+  discount: {
+    type: Number,
     required: false,
   },
-  // materials: {
-  //    type: [String],
-  //     required: true,
-  //   },
+  releaseDate: {
+    type: Date,
+    required: false,
+  },
+  lacesColor: {
+    type: [String],
+    required: true,
+  },
+  soleColor: {
+    type: [String],
+    required: true,
+  },
 });
 
 const Product = mongoose.model("Product", ProductSchema);
