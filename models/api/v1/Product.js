@@ -4,6 +4,7 @@ const ProductSchema = new mongoose.Schema({
   productCode: {
     type: String,
     required: true,
+    unique: true,
   },
   productName: {
     type: String,
@@ -17,7 +18,7 @@ const ProductSchema = new mongoose.Schema({
     type: String,
     required: false,
     enum: ["optical", "sun"],
-    default: "optcial",
+    default: "optical",
   },
   description: {
     type: String,
@@ -41,28 +42,12 @@ const ProductSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  // price: {
-  //   type: String,
-  //   required: true,
-  // },
-  // headImage: {
-  //   type: String,
-  //   required: true,
-  // },
-  // modelImage: {
-  //   type: String,
-  //   required: true,
-  // },
-  // modelImage2: {
-  //   type: String,
-  //   required: true,
-  // },
-  //   stock: {
-  //     type: Number,
-  //     required: true,
-  //   },
+  images: {
+    type: [String],
+    required: false,
+  },
   // materials: {
-  //     type: Array,
+  //    type: [String],
   //     required: true,
   //   },
 });

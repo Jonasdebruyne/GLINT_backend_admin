@@ -1,5 +1,12 @@
 const jwt = require("jsonwebtoken");
 const Product = require("../../../models/api/v1/Product");
+require("dotenv").config(); // Zorg ervoor dat dotenv eerst wordt geladen
+const cloudinary = require("cloudinary").v2;
+
+// Cloudinary configureren
+cloudinary.config({
+  url: process.env.CLOUDINARY_URL, // Gebruik de volledige URL uit je .env bestand
+});
 
 const create = async (req, res) => {
   const product = req.body.product;
@@ -10,11 +17,12 @@ const create = async (req, res) => {
     !product.productName ||
     !product.productPrice ||
     !product.typeOfProduct ||
-    !product.description || // Ensure description is in the request body
-    !product.brand || // Ensure brand is in the request body
+    !product.description ||
+    !product.brand ||
     !product.colors ||
     !product.activeUnactive ||
-    !product.glassColor
+    !product.glassColor ||
+    !product.images // Ensure images are provided
   ) {
     return res.status(400).json({
       status: "error",
@@ -39,9 +47,31 @@ const create = async (req, res) => {
     colors,
     activeUnactive,
     glassColor,
+    images, // Extract images
   } = product;
 
   try {
+    // Gebruik alleen originele afbeeldingen als ze in Cloudinary staan
+    let uploadedImages = [];
+
+    // Check of een afbeelding al een Cloudinary URL is
+    for (const image of images) {
+      if (image.startsWith("https://res.cloudinary.com")) {
+        // Voeg bestaande Cloudinary URLs toe zonder opnieuw te uploaden
+        uploadedImages.push(image);
+      } else {
+        // Upload de afbeelding naar Cloudinary en voeg de URL toe
+        const result = await cloudinary.uploader.upload(image, {
+          folder: "Odette Lunettes", // Foldernaam
+          resource_type: "auto", // Dit zorgt ervoor dat alle bestandstypen (zoals afbeeldingen en video's) goed worden verwerkt.
+          format: "png", // Dit zorgt ervoor dat de afbeelding als .jpg wordt opgeslagen
+        });
+
+        uploadedImages.push(result.secure_url);
+      }
+    }
+
+    // Maak het product aan met de correcte URLs
     const p = new Product({
       productCode,
       productName,
@@ -52,6 +82,7 @@ const create = async (req, res) => {
       colors,
       activeUnactive,
       glassColor,
+      images: uploadedImages, // Gebruik alleen geüploade of originele URLs
     });
 
     await p.save();
@@ -94,6 +125,43 @@ const index = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Could not retrieve products",
+      error: error.message,
+    });
+  }
+};
+
+const show = async (req, res) => {
+  try {
+    const { productCode } = req.params;
+
+    // Ensure productCode is provided
+    if (!productCode) {
+      return res.status(400).json({
+        status: "error",
+        message: "Product code is required to retrieve a single product",
+      });
+    }
+
+    const product = await Product.findOne({ productCode });
+
+    // If the product does not exist
+    if (!product) {
+      return res.status(404).json({
+        status: "error",
+        message: "Product not found",
+      });
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        product: product,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Could not retrieve product",
       error: error.message,
     });
   }
@@ -159,6 +227,7 @@ const destroy = async (req, res, next) => {
 module.exports = {
   create,
   index,
+  show,
   update,
   destroy,
 };
