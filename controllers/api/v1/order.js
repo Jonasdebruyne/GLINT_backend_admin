@@ -49,18 +49,19 @@ const create = async (req, res) => {
 
 const index = async (req, res) => {
   try {
-    const { orderStatus, productCode } = req.query;
+    const { orderStatus, productId } = req.query; // Verwacht 'productId' in plaats van 'productCode'
     const filter = {};
 
-    // Apply filters based on the query parameters
+    // Pas de filters aan op basis van de queryparameters
     if (orderStatus) {
       filter.orderStatus = orderStatus;
     }
-    if (productCode) {
-      filter.productCode = productCode;
+    if (productId) {
+      // Wijzig dit naar productId
+      filter.productId = productId; // Verander hier naar productId
     }
 
-    // Find orders with the applied filters
+    // Zoek orders met de toegevoegde filters
     const orders = await Order.find(filter);
 
     res.json({
@@ -78,9 +79,8 @@ const index = async (req, res) => {
 
 const show = async (req, res) => {
   try {
-    const { orderId } = req.params;
+    const { orderId } = req.params; // Verwacht orderId in de URL
 
-    // Ensure orderId is provided
     if (!orderId) {
       return res.status(400).json({
         status: "error",
@@ -88,9 +88,8 @@ const show = async (req, res) => {
       });
     }
 
-    const order = await Order.findById(orderId)
-      .populate("products.productId", "productName productPrice") // Populate product details
-      .populate("customerId", "name email"); // Populate customer details if needed
+    // Zoek de order met orderId in plaats van productCode
+    const order = await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({
@@ -99,11 +98,13 @@ const show = async (req, res) => {
       });
     }
 
+    // Stuur de gevonden order als JSON
     res.json({
       status: "success",
       data: { order },
     });
   } catch (error) {
+    console.error("Error retrieving order:", error.message);
     res.status(500).json({
       status: "error",
       message: "Could not retrieve the order",
@@ -113,82 +114,55 @@ const show = async (req, res) => {
 };
 
 const update = async (req, res) => {
-  const { orderId } = req.params;
-  let orderData = req.body;
+  try {
+    const { orderId } = req.params; // Verwacht orderId in de URL
+    const { orderStatus, lacesColor, soleColor, insideColor, outsideColor } =
+      req.body;
 
-  // Controleer of orderId en orderData aanwezig zijn
-  if (!orderId || !orderData) {
-    return res.status(400).json({
-      status: "error",
-      message: "Order ID and order data are required for update",
-    });
-  }
-
-  // Specificeer de velden die we willen toestaan voor update
-  const allowedFields = [
-    "orderStatus",
-    "shippingAddress",
-    "totalPrice",
-    "products",
-  ];
-  const filteredData = {};
-
-  // Zorg ervoor dat alleen de toegestane velden worden meegegeven
-  allowedFields.forEach((field) => {
-    if (orderData[field] !== undefined) {
-      filteredData[field] = orderData[field];
-    }
-  });
-
-  // Als we producten bijwerken, moeten we de totaalprijs herberekenen
-  if (filteredData.products) {
-    try {
-      let totalPrice = 0;
-      for (const item of filteredData.products) {
-        const product = await Product.findById(item.productId);
-        if (!product) {
-          return res.status(404).json({
-            status: "error",
-            message: `Product with ID ${item.productId} not found.`,
-          });
-        }
-        totalPrice += product.productPrice * item.quantity;
-      }
-      filteredData.totalPrice = totalPrice;
-    } catch (err) {
-      return res.status(500).json({
+    // Validatie van de velden
+    if (
+      !orderStatus ||
+      !lacesColor ||
+      !soleColor ||
+      !insideColor ||
+      !outsideColor
+    ) {
+      return res.status(400).json({
         status: "error",
-        message: "Error calculating total price",
-        error: err.message || err,
+        message: "Missing required fields.",
       });
     }
-  }
 
-  try {
-    // Update de bestelling met de gefilterde gegevens
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      { $set: filteredData },
-      { new: true, runValidators: true }
-    );
+    // Zoek de order op basis van orderId
+    const order = await Order.findById(orderId);
 
-    if (!updatedOrder) {
+    if (!order) {
       return res.status(404).json({
         status: "error",
-        message: "Order not found",
+        message: "Order not found.",
       });
     }
+
+    // Werk de order bij
+    order.orderStatus = orderStatus;
+    order.lacesColor = lacesColor;
+    order.soleColor = soleColor;
+    order.insideColor = insideColor;
+    order.outsideColor = outsideColor;
+
+    // Sla de gewijzigde order op
+    await order.save();
 
     res.json({
       status: "success",
-      data: { order: updatedOrder },
+      data: { order },
     });
-  } catch (err) {
-    console.error("Update error:", err);
+  } catch (error) {
+    console.error("Error updating order:", error.message);
     res.status(500).json({
       status: "error",
-      message: "Order could not be updated",
-      error: err.message || err,
+      message: "Could not update the order.",
+      error: error.message,
     });
   }
 };
