@@ -20,11 +20,13 @@ const create = async (req, res) => {
     !product.description ||
     !product.brand ||
     !product.colors ||
-    !product.sizeOptions || // Toegevoegd als vereist
+    !product.sizeOptions || // Vereist
     !product.material ||
-    !product.inStock || // Toegevoegd als vereist
-    !product.lacesColor || // `lacesColor` is nu verplicht
-    !product.soleColor // `soleColor` is nu verplicht
+    !product.inStock || // Vereist
+    !product.lacesColor || // Vereist
+    !product.soleColor || // Vereist
+    !product.insideColor || // Vereist
+    !product.outsideColor // Vereist
   ) {
     return res.status(400).json({
       status: "error",
@@ -74,51 +76,42 @@ const create = async (req, res) => {
     releaseDate,
     lacesColor,
     soleColor,
+    insideColor, // Nieuw veld
+    outsideColor, // Nieuw veld
   } = product;
 
-  // Check of lacesColor en soleColor arrays zijn en strings bevatten
-  if (
-    !Array.isArray(lacesColor) ||
-    !lacesColor.every((color) => typeof color === "string")
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message: "lacesColor must be an array of strings.",
-    });
-  }
-
-  if (
-    !Array.isArray(soleColor) ||
-    !soleColor.every((color) => typeof color === "string")
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message: "soleColor must be an array of strings.",
-    });
-  }
+  // Validatie voor kleurenvelden
+  const validateColorArray = (colors, fieldName) => {
+    if (
+      !Array.isArray(colors) ||
+      !colors.every((color) => typeof color === "string")
+    ) {
+      throw new Error(`${fieldName} must be an array of strings.`);
+    }
+  };
 
   try {
-    // Gebruik alleen originele afbeeldingen als ze in Cloudinary staan
-    let uploadedImages = [];
+    validateColorArray(lacesColor, "lacesColor");
+    validateColorArray(soleColor, "soleColor");
+    validateColorArray(insideColor, "insideColor");
+    validateColorArray(outsideColor, "outsideColor");
 
-    // Check of een afbeelding al een Cloudinary URL is
+    // Upload afbeeldingen naar Cloudinary als ze geen Cloudinary-URL zijn
+    let uploadedImages = [];
     for (const image of images) {
       if (image.startsWith("https://res.cloudinary.com")) {
-        // Voeg bestaande Cloudinary URLs toe zonder opnieuw te uploaden
         uploadedImages.push(image);
       } else {
-        // Upload de afbeelding naar Cloudinary en voeg de URL toe
         const result = await cloudinary.uploader.upload(image, {
-          folder: "Odette Lunettes", // Foldernaam
-          resource_type: "auto", // Dit zorgt ervoor dat alle bestandstypen (zoals afbeeldingen en video's) goed worden verwerkt.
-          format: "png", // Dit zorgt ervoor dat de afbeelding als .png wordt opgeslagen
+          folder: "Odette Lunettes",
+          resource_type: "auto",
+          format: "png",
         });
-
         uploadedImages.push(result.secure_url);
       }
     }
 
-    // Maak het product aan met de correcte URLs
+    // Maak het product aan met alle velden, inclusief nieuwe velden
     const newProduct = new Product({
       productCode,
       productName,
@@ -130,15 +123,17 @@ const create = async (req, res) => {
       sizeOptions,
       activeUnactive,
       material,
-      images: uploadedImages, // Gebruik alleen geüploade of originele URLs
+      images: uploadedImages,
       inStock,
       discount,
       releaseDate,
-      lacesColor, // Voeg lacesColor toe aan het product
-      soleColor, // Voeg soleColor toe aan het product
+      lacesColor,
+      soleColor,
+      insideColor,
+      outsideColor,
     });
 
-    // Sla het nieuwe product op in de database
+    // Sla het product op in de database
     await newProduct.save();
 
     res.json({

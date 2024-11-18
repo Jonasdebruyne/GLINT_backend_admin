@@ -70,6 +70,14 @@ const ProductSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
+  insideColor: {
+    type: [String],
+    required: true,
+  },
+  outsideColor: {
+    type: [String],
+    required: true,
+  },
 });
 
 const Product = mongoose.model("Product", ProductSchema);
