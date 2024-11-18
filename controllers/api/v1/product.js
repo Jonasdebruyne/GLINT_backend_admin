@@ -181,19 +181,20 @@ const index = async (req, res) => {
 
 const show = async (req, res) => {
   try {
-    const { productCode } = req.params;
+    const { id } = req.params; // Verkrijg de ID uit de URL-parameters
 
-    // Ensure productCode is provided
-    if (!productCode) {
+    // Zorg ervoor dat de id aanwezig is
+    if (!id) {
       return res.status(400).json({
         status: "error",
-        message: "Product code is required to retrieve a single product",
+        message: "Product id is required to retrieve a single product",
       });
     }
 
-    const product = await Product.findOne({ productCode });
+    // Zoek het product op basis van de _id van MongoDB
+    const product = await Product.findById(id); // Gebruik findById om op _id te zoeken
 
-    // If the product does not exist
+    // Als het product niet bestaat
     if (!product) {
       return res.status(404).json({
         status: "error",
@@ -204,7 +205,7 @@ const show = async (req, res) => {
     res.json({
       status: "success",
       data: {
-        product: product,
+        product: product, // Toon het product
       },
     });
   } catch (error) {
@@ -217,23 +218,144 @@ const show = async (req, res) => {
 };
 
 const update = async (req, res) => {
-  const productData = req.body.product;
-  const { id } = req.params; // Zorg ervoor dat je de id uit de params haalt
+  const { id } = req.params; // Verkrijg het product ID uit de URL-parameters
+  const product = req.body.product; // Verkrijg de productgegevens uit de body
 
-  if (!productData) {
+  // Controleer of de productgegevens zijn meegegeven
+  if (!product) {
     return res.status(400).json({
       status: "error",
-      message: "Product data is required for update",
+      message: "Product data is required for update.",
     });
   }
 
+  // Haal de productvelden uit de body (je kunt de destructuring gebruiken)
+  const {
+    productCode,
+    productName,
+    productPrice,
+    typeOfProduct = "sneaker", // Standaardwaarde
+    description,
+    brand,
+    colors,
+    sizeOptions,
+    activeUnactive = "active", // Standaardwaarde
+    material,
+    images = [], // Zet op lege array als geen afbeeldingen
+    inStock,
+    discount,
+    releaseDate,
+    lacesColor,
+    soleColor,
+    insideColor,
+    outsideColor,
+  } = product;
+
+  // Validatie van vereiste velden
+  if (
+    !productCode ||
+    !productName ||
+    !productPrice ||
+    !description ||
+    !brand ||
+    !colors ||
+    !sizeOptions || // Vereist
+    !material ||
+    !inStock || // Vereist
+    !lacesColor || // Vereist
+    !soleColor || // Vereist
+    !insideColor || // Vereist
+    !outsideColor // Vereist
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "Product is missing required fields.",
+    });
+  }
+
+  // Validatie voor typeOfProduct (indien aanwezig)
+  if (
+    product.typeOfProduct &&
+    !["sneaker", "boot", "sandals", "formal", "slippers"].includes(
+      product.typeOfProduct
+    )
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message:
+        "Invalid typeOfProduct, valid values are: sneaker, boot, sandals, formal, slippers.",
+    });
+  }
+
+  // Validatie voor activeUnactive (indien aanwezig)
+  if (
+    product.activeUnactive &&
+    !["active", "inactive"].includes(product.activeUnactive)
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "Invalid status, expected 'active' or 'inactive'.",
+    });
+  }
+
+  // Validatie voor kleurenvelden
+  const validateColorArray = (colors, fieldName) => {
+    if (
+      !Array.isArray(colors) ||
+      !colors.every((color) => typeof color === "string")
+    ) {
+      throw new Error(`${fieldName} must be an array of strings.`);
+    }
+  };
+
   try {
+    validateColorArray(lacesColor, "lacesColor");
+    validateColorArray(soleColor, "soleColor");
+    validateColorArray(insideColor, "insideColor");
+    validateColorArray(outsideColor, "outsideColor");
+
+    // Upload afbeeldingen naar Cloudinary als ze geen Cloudinary-URL zijn
+    let uploadedImages = [];
+    for (const image of images) {
+      if (image.startsWith("https://res.cloudinary.com")) {
+        uploadedImages.push(image);
+      } else {
+        const result = await cloudinary.uploader.upload(image, {
+          folder: "Odette Lunettes",
+          resource_type: "auto",
+          format: "png",
+        });
+        uploadedImages.push(result.secure_url);
+      }
+    }
+
+    // Werk het product bij in de database
     const updatedProduct = await Product.findByIdAndUpdate(
-      id, // Hier geef je de ID door
-      { $set: productData },
-      { new: true, runValidators: true } // runValidators om ervoor te zorgen dat de validatie wordt uitgevoerd
+      id,
+      {
+        productCode,
+        productName,
+        productPrice,
+        typeOfProduct,
+        description,
+        brand,
+        colors,
+        sizeOptions,
+        activeUnactive,
+        material,
+        images: uploadedImages,
+        inStock,
+        discount,
+        releaseDate,
+        lacesColor,
+        soleColor,
+        insideColor,
+        outsideColor,
+      },
+      { new: true, runValidators: true } // Zorg ervoor dat de geüpdatete versie wordt teruggegeven
     );
 
+    // Als het product niet bestaat
     if (!updatedProduct) {
       return res.status(404).json({
         status: "error",
@@ -246,7 +368,7 @@ const update = async (req, res) => {
       data: { product: updatedProduct },
     });
   } catch (err) {
-    console.error("Update error:", err);
+    console.error("Error updating product:", err);
     res.status(500).json({
       status: "error",
       message: "Product could not be updated",
