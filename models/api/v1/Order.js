@@ -1,46 +1,30 @@
 const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema({
-  customerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // Change from "Customer" to "User"
+  productCode: {
+    type: String,
     required: true,
   },
-  orderDate: {
-    type: Date,
+  lacesColor: {
+    type: String,
+    required: true,
+  },
+  soleColor: {
+    type: String,
+    required: true,
+  },
+  insideColor: {
+    type: String,
+    required: true,
+  },
+  outsideColor: {
+    type: String,
     required: true,
   },
   orderStatus: {
     type: String,
     required: true,
     enum: ["pending", "shipped", "delivered", "cancelled"],
-    default: "pending",
-  },
-  products: [
-    {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
-      },
-      quantity: {
-        type: Number,
-        required: true,
-      },
-    },
-  ],
-  totalPrice: {
-    type: Number,
-    required: true,
-  },
-  shippingAddress: {
-    type: Object, // Changed from String to Object
-    required: true,
-  },
-  paymentStatus: {
-    type: String,
-    required: true,
-    enum: ["pending", "completed", "failed"],
     default: "pending",
   },
 });

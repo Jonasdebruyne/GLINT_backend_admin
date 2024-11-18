@@ -2,15 +2,16 @@ const Order = require("../../../models/api/v1/Order");
 const Product = require("../../../models/api/v1/Product");
 
 const create = async (req, res) => {
-  const { customerId, products, shippingAddress, paymentStatus } = req.body;
+  const { lacesColor, soleColor, insideColor, outsideColor, productCode } =
+    req.body;
 
   // Validate required fields
   if (
-    !customerId ||
-    !Array.isArray(products) ||
-    !products.length ||
-    !shippingAddress ||
-    !paymentStatus
+    !lacesColor ||
+    !soleColor ||
+    !insideColor ||
+    !outsideColor ||
+    !productCode
   ) {
     return res.status(400).json({
       status: "error",
@@ -19,46 +20,28 @@ const create = async (req, res) => {
   }
 
   try {
-    // Calculate total price and verify product details
-    let totalPrice = 0;
-    for (const item of products) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
-        return res.status(404).json({
-          status: "error",
-          message: `Product with ID ${item.productId} not found.`,
-        });
-      }
-      // Calculate total price
-      totalPrice += product.productPrice * item.quantity;
-
-      // Optionally, add productName and productPrice to the products array in order
-      item.productPrice = product.productPrice;
-      item.productName = product.productName;
-    }
-
-    // Create order
-    const order = new Order({
-      customerId,
-      orderDate: new Date(),
-      orderStatus: "pending",
-      products,
-      totalPrice,
-      shippingAddress,
-      paymentStatus,
+    // Create new order
+    const newOrder = new Order({
+      productCode,
+      lacesColor,
+      soleColor,
+      insideColor,
+      outsideColor,
+      orderStatus: "pending", // Default status
     });
 
-    await order.save();
+    // Save the order to the database
+    await newOrder.save();
 
-    res.json({
+    res.status(201).json({
       status: "success",
-      data: { order },
+      data: { order: newOrder },
     });
   } catch (err) {
     console.error("Error creating order:", err);
     res.status(500).json({
       status: "error",
-      message: "Order could not be created",
+      message: "Order could not be created.",
       error: err.message || err,
     });
   }
@@ -66,19 +49,19 @@ const create = async (req, res) => {
 
 const index = async (req, res) => {
   try {
-    const { customerId, orderStatus } = req.query;
+    const { orderStatus, productCode } = req.query;
     const filter = {};
 
-    if (customerId) {
-      filter.customerId = customerId;
-    }
+    // Apply filters based on the query parameters
     if (orderStatus) {
       filter.orderStatus = orderStatus;
     }
+    if (productCode) {
+      filter.productCode = productCode;
+    }
 
-    const orders = await Order.find(filter)
-      .populate("products.productId", "productName productPrice") // Populate product details
-      .populate("customerId", "name email"); // Populate customer details if needed
+    // Find orders with the applied filters
+    const orders = await Order.find(filter);
 
     res.json({
       status: "success",
