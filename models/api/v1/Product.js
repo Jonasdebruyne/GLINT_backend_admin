@@ -16,7 +16,7 @@ const ProductSchema = new mongoose.Schema({
   },
   typeOfProduct: {
     type: String,
-    required: false,
+    required: true,
     enum: ["sneaker", "boot", "sandals", "formal", "slippers"],
     default: "sneaker",
   },
@@ -36,31 +36,9 @@ const ProductSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
-  activeUnactive: {
-    type: String,
-    required: false,
-    enum: ["active", "inactive"],
-    default: "active",
-  },
-  material: {
-    type: String,
-    required: true,
-  },
   images: {
     type: [String],
     required: true,
-  },
-  inStock: {
-    type: Number,
-    required: true,
-  },
-  discount: {
-    type: Number,
-    required: false,
-  },
-  releaseDate: {
-    type: Date,
-    required: false,
   },
   lacesColor: {
     type: [String],

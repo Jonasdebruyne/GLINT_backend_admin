@@ -21,8 +21,6 @@ const create = async (req, res) => {
     !product.brand ||
     !product.colors ||
     !product.sizeOptions || // Vereist
-    !product.material ||
-    !product.inStock || // Vereist
     !product.lacesColor || // Vereist
     !product.soleColor || // Vereist
     !product.insideColor || // Vereist
@@ -48,17 +46,6 @@ const create = async (req, res) => {
     });
   }
 
-  // Validatie voor activeUnactive (indien aanwezig)
-  if (
-    product.activeUnactive &&
-    !["active", "inactive"].includes(product.activeUnactive)
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message: "Invalid status, expected 'active' or 'inactive'.",
-    });
-  }
-
   const {
     productCode,
     productName,
@@ -68,12 +55,7 @@ const create = async (req, res) => {
     brand,
     colors,
     sizeOptions,
-    activeUnactive = "active", // Standaardwaarde
-    material,
     images = [], // Zet op lege array als geen afbeeldingen
-    inStock,
-    discount,
-    releaseDate,
     lacesColor,
     soleColor,
     insideColor, // Nieuw veld
@@ -121,12 +103,7 @@ const create = async (req, res) => {
       brand,
       colors,
       sizeOptions,
-      activeUnactive,
-      material,
       images: uploadedImages,
-      inStock,
-      discount,
-      releaseDate,
       lacesColor,
       soleColor,
       insideColor,
@@ -181,24 +158,24 @@ const index = async (req, res) => {
 
 const show = async (req, res) => {
   try {
-    const { id } = req.params; // Verkrijg de ID uit de URL-parameters
+    const { productCode } = req.params; // Verkrijg de productcode uit de URL-parameters
 
-    // Zorg ervoor dat de id aanwezig is
-    if (!id) {
+    // Zorg ervoor dat de productcode aanwezig is
+    if (!productCode) {
       return res.status(400).json({
         status: "error",
-        message: "Product id is required to retrieve a single product",
+        message: "Product code is required to retrieve a single product",
       });
     }
 
-    // Zoek het product op basis van de _id van MongoDB
-    const product = await Product.findById(id); // Gebruik findById om op _id te zoeken
+    // Zoek het product op basis van de productCode
+    const product = await Product.findOne({ productCode }); // Gebruik findOne en zoek op productCode
 
     // Als het product niet bestaat
     if (!product) {
       return res.status(404).json({
         status: "error",
-        message: "Product not found",
+        message: `Product with code ${productCode} not found`,
       });
     }
 
@@ -239,12 +216,7 @@ const update = async (req, res) => {
     brand,
     colors,
     sizeOptions,
-    activeUnactive = "active", // Standaardwaarde
-    material,
     images = [], // Zet op lege array als geen afbeeldingen
-    inStock,
-    discount,
-    releaseDate,
     lacesColor,
     soleColor,
     insideColor,
@@ -260,8 +232,6 @@ const update = async (req, res) => {
     !brand ||
     !colors ||
     !sizeOptions || // Vereist
-    !material ||
-    !inStock || // Vereist
     !lacesColor || // Vereist
     !soleColor || // Vereist
     !insideColor || // Vereist
@@ -284,17 +254,6 @@ const update = async (req, res) => {
       status: "error",
       message:
         "Invalid typeOfProduct, valid values are: sneaker, boot, sandals, formal, slippers.",
-    });
-  }
-
-  // Validatie voor activeUnactive (indien aanwezig)
-  if (
-    product.activeUnactive &&
-    !["active", "inactive"].includes(product.activeUnactive)
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message: "Invalid status, expected 'active' or 'inactive'.",
     });
   }
 
@@ -341,11 +300,7 @@ const update = async (req, res) => {
         brand,
         colors,
         sizeOptions,
-        activeUnactive,
-        material,
         images: uploadedImages,
-        inStock,
-        discount,
         releaseDate,
         lacesColor,
         soleColor,
