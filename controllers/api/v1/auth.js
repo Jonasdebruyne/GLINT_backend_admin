@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../../../models/api/v1/User");
+const Partner = require("../../../models/api/v1/Partner");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
@@ -11,76 +12,94 @@ const signup = async (req, res) => {
       email,
       password,
       role,
+      company, // Dit gebruiken we om de partner te vinden
       activeUnactive,
-      country, // Nieuwe velden
-      city, // Nieuwe velden
-      postalCode, // Nieuwe velden
-      profileImage, // Nieuwe velden
-      bio, // Nieuwe velden
+      country,
+      city,
+      postalCode,
+      profileImage,
+      bio,
     } = req.body.user;
 
-    // Validatie voor ontbrekende velden
+    // Validatie van verplichte velden
     if (
       !firstname ||
       !lastname ||
       !email ||
       !password ||
       !role ||
-      !activeUnactive
+      !activeUnactive ||
+      !company
     ) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res
+        .status(400)
+        .json({ message: "All required fields must be provided." });
     }
 
-    // Controleer of e-mail al bestaat
+    // Controleer of het e-mailadres al bestaat
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email is already in use" });
     }
 
-    // Maak een nieuwe gebruiker
+    // Zoek het partner ID (companyId) op basis van de company naam
+    const partner = await Partner.findOne({ name: company });
+    if (!partner) {
+      return res
+        .status(404)
+        .json({ message: `Company "${company}" not found.` });
+    }
+
+    // Maak een nieuwe gebruiker aan
     const user = new User({
       firstname,
       lastname,
       email,
       role,
+      company, // Optioneel om te bewaren voor de leesbaarheid
       activeUnactive,
-      country, // Nieuwe velden
-      city, // Nieuwe velden
-      postalCode, // Nieuwe velden
-      profileImage, // Nieuwe velden
-      bio, // Nieuwe velden
+      partnerId: partner._id, // Koppel de partnerId aan de gebruiker
+      country,
+      city,
+      postalCode,
+      profileImage,
+      bio,
     });
 
-    // Gebruik de register-methode van passport-local-mongoose om het wachtwoord te hashen
+    // Gebruik Passport om het wachtwoord te hashen en de gebruiker te registreren
     await User.register(user, password);
 
+    // Genereer een JWT-token inclusief partnerId
     const token = jwt.sign(
       {
         userId: user._id,
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
+        companyId: partner._id, // Partner ID toevoegen aan token
       },
-      "MyVerySecretWord", // Geheime sleutel
-      { expiresIn: "1h" } // Token vervalt na 1 uur
+      "MyVerySecretWord",
+      { expiresIn: "1h" }
     );
 
+    // Response met gebruikersinformatie en token
     res.status(201).json({
       status: "success",
       data: {
         token: token,
         user: {
+          id: user._id,
           firstname: user.firstname,
           lastname: user.lastname,
           email: user.email,
-          id: user._id,
           role: user.role,
+          company: user.company, // Handig voor leesbaarheid
           activeUnactive: user.activeUnactive,
-          country: user.country, // Nieuwe velden
-          city: user.city, // Nieuwe velden
-          postalCode: user.postalCode, // Nieuwe velden
-          profileImage: user.profileImage, // Nieuwe velden
-          bio: user.bio, // Nieuwe velden
+          country: user.country,
+          city: user.city,
+          postalCode: user.postalCode,
+          profileImage: user.profileImage,
+          bio: user.bio,
         },
       },
     });
@@ -114,12 +133,19 @@ const login = async (req, res) => {
       });
     }
 
+    // Find the partner details to get the companyId
+    const partner = await Partner.findOne({ name: user.company });
+    if (!partner) {
+      return res.status(400).json({ message: "Partner not found" });
+    }
+
     const token = jwt.sign(
       {
         userId: user._id,
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
+        companyId: partner._id, // Add companyId to the token payload
       },
       "MyVerySecretWord",
       { expiresIn: "1h" }
@@ -142,11 +168,24 @@ const login = async (req, res) => {
 
 const index = async (req, res) => {
   try {
+    // Haal alle gebruikers op
     const users = await User.find();
+
+    // Voeg partnerId toe aan elke gebruiker door de company te matchen met Partner
+    const usersWithPartnerId = await Promise.all(
+      users.map(async (user) => {
+        const partner = await Partner.findOne({ name: user.company });
+        return {
+          ...user._doc,
+          partnerId: partner ? partner._id : null, // PartnerId toevoegen of null als niet gevonden
+        };
+      })
+    );
+
     res.json({
       status: "success",
       data: {
-        users: users,
+        users: usersWithPartnerId,
       },
     });
   } catch (err) {
@@ -168,6 +207,9 @@ const show = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Zoek de bijbehorende partner op
+    const partner = await Partner.findOne({ name: user.company });
+
     res.json({
       status: "success",
       data: {
@@ -177,12 +219,14 @@ const show = async (req, res) => {
           email: user.email,
           id: user._id,
           role: user.role,
+          company: user.company,
+          partnerId: partner ? partner._id : null, // PartnerId toevoegen of null als niet gevonden
           activeUnactive: user.activeUnactive,
-          country: user.country, // Voeg het nieuwe veld toe
-          city: user.city, // Voeg het nieuwe veld toe
-          postalCode: user.postalCode, // Voeg het nieuwe veld toe
-          profileImage: user.profileImage, // Voeg het nieuwe veld toe
-          bio: user.bio, // Voeg het nieuwe veld toe
+          country: user.country,
+          city: user.city,
+          postalCode: user.postalCode,
+          profileImage: user.profileImage,
+          bio: user.bio,
         },
       },
     });
@@ -218,9 +262,9 @@ const update = async (req, res) => {
 
     const { oldPassword, newPassword } = userData;
 
-    // Controleer of er een nieuw wachtwoord is opgegeven
+    // Check if a new password is provided
     if (newPassword) {
-      // Als er een nieuw wachtwoord is opgegeven, controleer dan het oude wachtwoord
+      // If new password is provided, check for old password
       if (!oldPassword) {
         return res.status(400).json({
           status: "error",
@@ -228,10 +272,8 @@ const update = async (req, res) => {
         });
       }
 
-      // Controleer of het oude wachtwoord overeenkomt
+      // Verify old password
       const isMatch = await updatedUser.isValidPassword(oldPassword);
-
-      // Als het oude wachtwoord onjuist is, geef dan een foutstatus terug
       if (!isMatch.user) {
         return res.status(401).json({
           status: "error",
@@ -239,14 +281,26 @@ const update = async (req, res) => {
         });
       }
 
-      // Stel het nieuwe wachtwoord in
+      // Set new password
       await updatedUser.setPassword(newPassword);
     }
 
-    // Update andere gebruikersgegevens indien nodig
-    Object.assign(updatedUser, userData);
+    // Update user fields with new data
+    Object.assign(updatedUser, {
+      firstname: userData.firstname,
+      lastname: userData.lastname,
+      email: userData.email,
+      role: userData.role,
+      company: userData.company,
+      activeUnactive: userData.activeUnactive,
+      country: userData.country, // New fields
+      city: userData.city, // New fields
+      postalCode: userData.postalCode, // New fields
+      profileImage: userData.profileImage, // New fields
+      bio: userData.bio, // New fields
+    });
 
-    // Sla de wijzigingen op
+    // Save the updated user
     await updatedUser.save();
 
     res.json({
@@ -257,13 +311,13 @@ const update = async (req, res) => {
           lastname: updatedUser.lastname,
           email: updatedUser.email,
           id: updatedUser._id,
-          role: updatedUser.role,
+          company: updatedUser.company,
           activeUnactive: updatedUser.activeUnactive,
-          country: updatedUser.country,
-          city: updatedUser.city,
-          postalCode: updatedUser.postalCode,
-          profileImage: updatedUser.profileImage,
-          bio: updatedUser.bio,
+          country: updatedUser.country, // New fields
+          city: updatedUser.city, // New fields
+          postalCode: updatedUser.postalCode, // New fields
+          profileImage: updatedUser.profileImage, // New fields
+          bio: updatedUser.bio, // New fields
         },
       },
     });
@@ -381,6 +435,7 @@ const verifyCode = async (req, res) => {
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
+        company: user.company,
       },
       "MyVerySecretWord",
       { expiresIn: "1h" }

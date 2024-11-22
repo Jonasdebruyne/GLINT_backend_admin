@@ -1,4 +1,3 @@
-const jwt = require("jsonwebtoken");
 const HouseStyle = require("../../../models/api/v1/HouseStyle");
 const mongoose = require("mongoose");
 
