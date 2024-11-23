@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const Product = require("../../../models/api/v1/Product");
 require("dotenv").config(); // Ensure dotenv is loaded first
 const cloudinary = require("cloudinary").v2;
+const mongoose = require("mongoose");
 
 // Configure Cloudinary
 cloudinary.config({
@@ -145,21 +146,30 @@ const index = async (req, res) => {
 
 const show = async (req, res) => {
   try {
-    const { productCode } = req.params;
+    const { id } = req.params; // Neem de id uit de parameters
 
-    if (!productCode) {
+    if (!id) {
       return res.status(400).json({
         status: "error",
-        message: "Product code is required to retrieve a single product",
+        message: "Product id is required to retrieve a single product",
       });
     }
 
-    const product = await Product.findOne({ productCode });
+    // Zorg ervoor dat de id een geldige MongoDB ObjectId is
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid product id",
+      });
+    }
+
+    // Zoek het product op basis van de MongoDB _id
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({
         status: "error",
-        message: `Product with code ${productCode} not found`,
+        message: `Product with id ${id} not found`,
       });
     }
 
