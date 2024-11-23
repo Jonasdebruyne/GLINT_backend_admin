@@ -27,8 +27,8 @@ const PartnerSchema = new mongoose.Schema({
   },
   package: {
     type: String,
-    enum: ["Standard", "Pro"],
-    default: "Standard",
+    enum: ["standard", "pro"],
+    default: "standard",
     required: true,
   },
   created_at: {

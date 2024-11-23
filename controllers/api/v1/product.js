@@ -186,6 +186,19 @@ const show = async (req, res) => {
   }
 };
 
+// Functie om kleurarrays te valideren
+function validateColorArray(colorArray, fieldName) {
+  if (!Array.isArray(colorArray)) {
+    throw new Error(`${fieldName} should be an array`);
+  }
+
+  colorArray.forEach((color, index) => {
+    if (typeof color !== "string") {
+      throw new Error(`${fieldName}[${index}] should be a string`);
+    }
+  });
+}
+
 const update = async (req, res) => {
   const { id } = req.params;
   const product = req.body.product;
@@ -233,6 +246,7 @@ const update = async (req, res) => {
   }
 
   try {
+    // Valideer de kleurarrays
     validateColorArray(lacesColor, "lacesColor");
     validateColorArray(soleColor, "soleColor");
     validateColorArray(insideColor, "insideColor");
