@@ -12,7 +12,7 @@ const signup = async (req, res) => {
       email,
       password,
       role,
-      company, // Dit gebruiken we om de partner te vinden
+      company, // Dit gebruiken we om de partner te vinden, optioneel
       activeUnactive,
       country,
       city,
@@ -28,8 +28,7 @@ const signup = async (req, res) => {
       !email ||
       !password ||
       !role ||
-      !activeUnactive ||
-      !company
+      !activeUnactive
     ) {
       return res
         .status(400)
@@ -43,22 +42,27 @@ const signup = async (req, res) => {
     }
 
     // Zoek het partner ID (companyId) op basis van de company naam
-    const partner = await Partner.findOne({ name: company });
-    if (!partner) {
-      return res
-        .status(404)
-        .json({ message: `Company "${company}" not found.` });
+    // We doen dit alleen als company is ingevuld
+    let partnerId = null;
+    if (company) {
+      const partner = await Partner.findOne({ name: company });
+      if (!partner) {
+        return res
+          .status(404)
+          .json({ message: `Company "${company}" not found.` });
+      }
+      partnerId = partner._id; // Koppel de partnerId aan de gebruiker
     }
 
-    // Maak een nieuwe gebruiker aan
+    // Maak een nieuwe gebruiker aan met optionele velden
     const user = new User({
       firstname,
       lastname,
       email,
       role,
-      company, // Optioneel om te bewaren voor de leesbaarheid
       activeUnactive,
-      partnerId: partner._id, // Koppel de partnerId aan de gebruiker
+      company, // Optioneel om te bewaren voor de leesbaarheid
+      partnerId, // Koppel de partnerId aan de gebruiker (kan null zijn)
       country,
       city,
       postalCode,
@@ -69,14 +73,14 @@ const signup = async (req, res) => {
     // Gebruik Passport om het wachtwoord te hashen en de gebruiker te registreren
     await User.register(user, password);
 
-    // Genereer een JWT-token inclusief partnerId
+    // Genereer een JWT-token inclusief partnerId als het aanwezig is
     const token = jwt.sign(
       {
         userId: user._id,
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
-        companyId: partner._id, // Partner ID toevoegen aan token
+        companyId: partnerId, // Partner ID toevoegen aan token (kan null zijn)
       },
       "MyVerySecretWord",
       { expiresIn: "1h" }

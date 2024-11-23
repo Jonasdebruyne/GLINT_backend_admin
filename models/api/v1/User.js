@@ -8,19 +8,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    match: /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/, // Verbeterde regex
+    match: /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/,
   },
   role: {
     type: String,
-    enum: ["customer", "partner_admin", "partner_owner", "platform_admin"], // Add "user"
+    enum: ["customer", "partner_admin", "partner_owner", "platform_admin"],
     required: true,
     default: "customer",
   },
-
-  company: {
-    type: String,
-    required: false,
-  },
+  company: { type: String, required: false },
   activeUnactive: {
     type: String,
     enum: ["active", "inactive"],
