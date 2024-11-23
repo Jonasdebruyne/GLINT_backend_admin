@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Partner = require("../../../models/api/v1/Partner");
 
 // Create a new partner
@@ -61,16 +62,25 @@ const index = async (req, res) => {
 // Retrieve a specific partner by ID
 const show = async (req, res) => {
   try {
-    const { partnerId } = req.params;
+    const { id } = req.params; // Let op de parameternaam 'id'
 
-    if (!partnerId) {
+    // Controleer of id aanwezig is
+    if (!id) {
       return res.status(400).json({
         status: "error",
         message: "Partner ID is required.",
       });
     }
 
-    const partner = await Partner.findById(partnerId);
+    // Controleer of id een geldig MongoDB ObjectId is
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid Partner ID format.",
+      });
+    }
+
+    const partner = await Partner.findById(id);
 
     if (!partner) {
       return res.status(404).json({
@@ -96,7 +106,7 @@ const show = async (req, res) => {
 // Update a partner
 const update = async (req, res) => {
   try {
-    const { partnerId } = req.params;
+    const { id } = req.params; // Gebruik nu :id zoals gedefinieerd in de route
     const { name, address, contact_email, contact_phone, package } = req.body;
 
     if (!name || !package) {
@@ -106,7 +116,7 @@ const update = async (req, res) => {
       });
     }
 
-    const partner = await Partner.findById(partnerId);
+    const partner = await Partner.findById(id); // Gebruik id hier
 
     if (!partner) {
       return res.status(404).json({
@@ -115,14 +125,14 @@ const update = async (req, res) => {
       });
     }
 
-    // Update fields
+    // Update de partner met de nieuwe gegevens
     partner.name = name;
     partner.address = address || partner.address;
     partner.contact_email = contact_email || partner.contact_email;
     partner.contact_phone = contact_phone || partner.contact_phone;
     partner.package = package;
 
-    // Save updates
+    // Sla de bijgewerkte partner op
     await partner.save();
 
     res.json({
@@ -142,9 +152,9 @@ const update = async (req, res) => {
 // Delete a partner
 const destroy = async (req, res) => {
   try {
-    const { partnerId } = req.params;
+    const { id } = req.params;
 
-    const deletedPartner = await Partner.findByIdAndDelete(partnerId);
+    const deletedPartner = await Partner.findByIdAndDelete(id);
 
     if (!deletedPartner) {
       return res.status(404).json({
