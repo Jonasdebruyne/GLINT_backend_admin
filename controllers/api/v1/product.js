@@ -98,28 +98,8 @@ const create = async (req, res) => {
 
 const index = async (req, res) => {
   try {
-    // Extract token from Authorization header
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-      return res
-        .status(401)
-        .json({ message: "No token provided, authorization required" });
-    }
-
-    // Verify and decode the JWT token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET); // Make sure to use your secret key here
-    } catch (err) {
-      return res.status(401).json({ message: "Invalid or expired token" });
-    }
-
-    // Extract partnerId from the decoded token
-    const partnerId = decoded.companyId;
-
     const { typeOfProduct, brand } = req.query;
-    const filter = { partnerId }; // Add filter for partnerId to ensure we only return products belonging to the logged-in company
+    const filter = {};
 
     if (typeOfProduct) {
       filter.typeOfProduct = typeOfProduct;
@@ -128,7 +108,6 @@ const index = async (req, res) => {
       filter.brand = brand;
     }
 
-    // Fetch products using the filter
     const products = await Product.find(filter);
 
     res.json({
@@ -186,7 +165,6 @@ const show = async (req, res) => {
   }
 };
 
-// Functie om kleurarrays te valideren
 function validateColorArray(colorArray, fieldName) {
   if (!Array.isArray(colorArray)) {
     throw new Error(`${fieldName} should be an array`);
