@@ -56,6 +56,11 @@ const ProductSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
+  partnerId: {
+    // Nieuwe veld voor partnerId
+    type: mongoose.Schema.Types.ObjectId, // Gebruik ObjectId als het een referentie is naar een ander model, zoals Partner.
+    required: true, // Aannemende dat dit een verplicht veld is
+  },
 });
 
 const Product = mongoose.model("Product", ProductSchema);

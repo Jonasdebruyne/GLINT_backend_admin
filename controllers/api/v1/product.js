@@ -1,99 +1,68 @@
 const jwt = require("jsonwebtoken");
 const Product = require("../../../models/api/v1/Product");
-require("dotenv").config(); // Zorg ervoor dat dotenv eerst wordt geladen
+require("dotenv").config(); // Ensure dotenv is loaded first
 const cloudinary = require("cloudinary").v2;
 
-// Cloudinary configureren
+// Configure Cloudinary
 cloudinary.config({
-  url: process.env.CLOUDINARY_URL, // Gebruik de volledige URL uit je .env bestand
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const create = async (req, res) => {
-  const product = req.body.product;
-
-  // Validatie van vereiste velden
-  if (
-    !product ||
-    !product.productCode ||
-    !product.productName ||
-    !product.productPrice ||
-    !product.description ||
-    !product.brand ||
-    !product.colors ||
-    !product.sizeOptions || // Vereist
-    !product.lacesColor || // Vereist
-    !product.soleColor || // Vereist
-    !product.insideColor || // Vereist
-    !product.outsideColor // Vereist
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message: "Product is missing required fields.",
-    });
-  }
-
-  // Validatie voor typeOfProduct (indien aanwezig)
-  if (
-    product.typeOfProduct &&
-    !["sneaker", "boot", "sandals", "formal", "slippers"].includes(
-      product.typeOfProduct
-    )
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message:
-        "Invalid typeOfProduct, valid values are: sneaker, boot, sandals, formal, slippers.",
-    });
-  }
-
-  const {
-    productCode,
-    productName,
-    productPrice,
-    typeOfProduct = "sneaker", // Standaardwaarde
-    description,
-    brand,
-    colors,
-    sizeOptions,
-    images = [], // Zet op lege array als geen afbeeldingen
-    lacesColor,
-    soleColor,
-    insideColor, // Nieuw veld
-    outsideColor, // Nieuw veld
-  } = product;
-
-  // Validatie voor kleurenvelden
-  const validateColorArray = (colors, fieldName) => {
-    if (
-      !Array.isArray(colors) ||
-      !colors.every((color) => typeof color === "string")
-    ) {
-      throw new Error(`${fieldName} must be an array of strings.`);
-    }
-  };
-
   try {
-    validateColorArray(lacesColor, "lacesColor");
-    validateColorArray(soleColor, "soleColor");
-    validateColorArray(insideColor, "insideColor");
-    validateColorArray(outsideColor, "outsideColor");
+    const {
+      productCode,
+      productName,
+      productPrice,
+      typeOfProduct,
+      description,
+      brand,
+      colors,
+      sizeOptions,
+      images,
+      lacesColor,
+      soleColor,
+      insideColor,
+      outsideColor,
+    } = req.body;
 
-    // Upload afbeeldingen naar Cloudinary als ze geen Cloudinary-URL zijn
-    let uploadedImages = [];
-    for (const image of images) {
-      if (image.startsWith("https://res.cloudinary.com")) {
-        uploadedImages.push(image);
-      } else {
-        const result = await cloudinary.uploader.upload(image, {
-          folder: "Odette Lunettes",
-          resource_type: "auto",
-          format: "png",
-        });
-        uploadedImages.push(result.secure_url);
-      }
+    // Ensure all required fields are present
+    if (
+      !productCode ||
+      !productName ||
+      !productPrice ||
+      !description ||
+      !brand
+    ) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: productCode, productName, productPrice, description, brand",
+      });
     }
 
-    // Maak het product aan met alle velden, inclusief nieuwe velden
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "No token provided, authorization required" });
+    }
+
+    // Verify and decode the JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET); // Make sure to use your secret key here
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+
+    // Extract partnerId from the decoded token
+    const partnerId = decoded.companyId;
+
+    // Create new product
     const newProduct = new Product({
       productCode,
       productName,
@@ -103,34 +72,53 @@ const create = async (req, res) => {
       brand,
       colors,
       sizeOptions,
-      images: uploadedImages,
+      images,
       lacesColor,
       soleColor,
       insideColor,
       outsideColor,
+      partnerId,
     });
 
-    // Sla het product op in de database
+    // Save the new product to the database
     await newProduct.save();
 
-    res.json({
+    res.status(201).json({
       status: "success",
-      data: { product: newProduct },
+      data: newProduct,
     });
-  } catch (err) {
-    console.error("Error saving product:", err);
-    res.status(500).json({
-      status: "error",
-      message: "Product could not be saved",
-      error: err.message || err,
-    });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while creating the product." });
   }
 };
 
 const index = async (req, res) => {
   try {
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "No token provided, authorization required" });
+    }
+
+    // Verify and decode the JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET); // Make sure to use your secret key here
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+
+    // Extract partnerId from the decoded token
+    const partnerId = decoded.companyId;
+
     const { typeOfProduct, brand } = req.query;
-    const filter = {};
+    const filter = { partnerId }; // Add filter for partnerId to ensure we only return products belonging to the logged-in company
 
     if (typeOfProduct) {
       filter.typeOfProduct = typeOfProduct;
@@ -139,13 +127,12 @@ const index = async (req, res) => {
       filter.brand = brand;
     }
 
+    // Fetch products using the filter
     const products = await Product.find(filter);
 
     res.json({
       status: "success",
-      data: {
-        products: products,
-      },
+      data: { products },
     });
   } catch (error) {
     res.status(500).json({
@@ -158,9 +145,8 @@ const index = async (req, res) => {
 
 const show = async (req, res) => {
   try {
-    const { productCode } = req.params; // Verkrijg de productcode uit de URL-parameters
+    const { productCode } = req.params;
 
-    // Zorg ervoor dat de productcode aanwezig is
     if (!productCode) {
       return res.status(400).json({
         status: "error",
@@ -168,10 +154,8 @@ const show = async (req, res) => {
       });
     }
 
-    // Zoek het product op basis van de productCode
-    const product = await Product.findOne({ productCode }); // Gebruik findOne en zoek op productCode
+    const product = await Product.findOne({ productCode });
 
-    // Als het product niet bestaat
     if (!product) {
       return res.status(404).json({
         status: "error",
@@ -181,9 +165,7 @@ const show = async (req, res) => {
 
     res.json({
       status: "success",
-      data: {
-        product: product, // Toon het product
-      },
+      data: { product },
     });
   } catch (error) {
     res.status(500).json({
@@ -195,10 +177,9 @@ const show = async (req, res) => {
 };
 
 const update = async (req, res) => {
-  const { id } = req.params; // Verkrijg het product ID uit de URL-parameters
-  const product = req.body.product; // Verkrijg de productgegevens uit de body
+  const { id } = req.params;
+  const product = req.body.product;
 
-  // Controleer of de productgegevens zijn meegegeven
   if (!product) {
     return res.status(400).json({
       status: "error",
@@ -206,24 +187,22 @@ const update = async (req, res) => {
     });
   }
 
-  // Haal de productvelden uit de body (je kunt de destructuring gebruiken)
   const {
     productCode,
     productName,
     productPrice,
-    typeOfProduct = "sneaker", // Standaardwaarde
+    typeOfProduct = "sneaker",
     description,
     brand,
     colors,
     sizeOptions,
-    images = [], // Zet op lege array als geen afbeeldingen
+    images = [],
     lacesColor,
     soleColor,
     insideColor,
     outsideColor,
   } = product;
 
-  // Validatie van vereiste velden
   if (
     !productCode ||
     !productName ||
@@ -231,11 +210,11 @@ const update = async (req, res) => {
     !description ||
     !brand ||
     !colors ||
-    !sizeOptions || // Vereist
-    !lacesColor || // Vereist
-    !soleColor || // Vereist
-    !insideColor || // Vereist
-    !outsideColor // Vereist
+    !sizeOptions ||
+    !lacesColor ||
+    !soleColor ||
+    !insideColor ||
+    !outsideColor
   ) {
     return res.status(400).json({
       status: "error",
@@ -243,37 +222,12 @@ const update = async (req, res) => {
     });
   }
 
-  // Validatie voor typeOfProduct (indien aanwezig)
-  if (
-    product.typeOfProduct &&
-    !["sneaker", "boot", "sandals", "formal", "slippers"].includes(
-      product.typeOfProduct
-    )
-  ) {
-    return res.status(400).json({
-      status: "error",
-      message:
-        "Invalid typeOfProduct, valid values are: sneaker, boot, sandals, formal, slippers.",
-    });
-  }
-
-  // Validatie voor kleurenvelden
-  const validateColorArray = (colors, fieldName) => {
-    if (
-      !Array.isArray(colors) ||
-      !colors.every((color) => typeof color === "string")
-    ) {
-      throw new Error(`${fieldName} must be an array of strings.`);
-    }
-  };
-
   try {
     validateColorArray(lacesColor, "lacesColor");
     validateColorArray(soleColor, "soleColor");
     validateColorArray(insideColor, "insideColor");
     validateColorArray(outsideColor, "outsideColor");
 
-    // Upload afbeeldingen naar Cloudinary als ze geen Cloudinary-URL zijn
     let uploadedImages = [];
     for (const image of images) {
       if (image.startsWith("https://res.cloudinary.com")) {
@@ -288,7 +242,6 @@ const update = async (req, res) => {
       }
     }
 
-    // Werk het product bij in de database
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {
@@ -301,16 +254,14 @@ const update = async (req, res) => {
         colors,
         sizeOptions,
         images: uploadedImages,
-        releaseDate,
         lacesColor,
         soleColor,
         insideColor,
         outsideColor,
       },
-      { new: true, runValidators: true } // Zorg ervoor dat de geüpdatete versie wordt teruggegeven
+      { new: true, runValidators: true }
     );
 
-    // Als het product niet bestaat
     if (!updatedProduct) {
       return res.status(404).json({
         status: "error",
@@ -332,7 +283,7 @@ const update = async (req, res) => {
   }
 };
 
-const destroy = async (req, res, next) => {
+const destroy = async (req, res) => {
   try {
     const { id } = req.params;
     const deletedProduct = await Product.findByIdAndDelete(id);
