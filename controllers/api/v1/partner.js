@@ -2,19 +2,25 @@ const Partner = require("../../../models/api/v1/Partner");
 
 // Create a new partner
 const create = async (req, res) => {
-  const { name } = req.body;
+  const { name, address, contact_email, contact_phone, package } = req.body;
 
   // Validate required fields
-  if (!name) {
+  if (!name || !package) {
     return res.status(400).json({
       status: "error",
-      message: "Name is required.",
+      message: "Name and package are required.",
     });
   }
 
   try {
     // Create a new partner
-    const newPartner = new Partner({ name });
+    const newPartner = new Partner({
+      name,
+      address: address || {},
+      contact_email: contact_email || null,
+      contact_phone: contact_phone || null,
+      package,
+    });
 
     // Save the partner to the database
     await newPartner.save();
@@ -91,12 +97,12 @@ const show = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { partnerId } = req.params;
-    const { name } = req.body;
+    const { name, address, contact_email, contact_phone, package } = req.body;
 
-    if (!name) {
+    if (!name || !package) {
       return res.status(400).json({
         status: "error",
-        message: "Name is required.",
+        message: "Name and package are required.",
       });
     }
 
@@ -109,7 +115,14 @@ const update = async (req, res) => {
       });
     }
 
+    // Update fields
     partner.name = name;
+    partner.address = address || partner.address;
+    partner.contact_email = contact_email || partner.contact_email;
+    partner.contact_phone = contact_phone || partner.contact_phone;
+    partner.package = package;
+
+    // Save updates
     await partner.save();
 
     res.json({
