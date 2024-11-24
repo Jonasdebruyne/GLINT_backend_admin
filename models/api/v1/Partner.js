@@ -1,24 +1,24 @@
 const mongoose = require("mongoose");
 
-const PartnerSchema = new mongoose.Schema({
+const partnerSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
   },
   address: {
-    street: { type: String, required: false },
-    city: { type: String, required: false },
-    postal_code: { type: String, required: false },
-    country: { type: String, required: false },
+    type: Object,
+    default: {},
   },
   contact_email: {
     type: String,
+    // Maak contact_email optioneel en accepteer null of een leeg veld
     required: false,
     validate: {
       validator: function (v) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); // E-mailvalidatie
+        // E-mail validatie enkel als er een waarde is (laat null of leeg toe)
+        return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
-      message: (props) => `${props.value} is geen geldig e-mailadres!`,
+      message: "Ongeldig e-mailadres!",
     },
   },
   contact_phone: {
@@ -27,16 +27,10 @@ const PartnerSchema = new mongoose.Schema({
   },
   package: {
     type: String,
-    enum: ["standard", "pro"],
-    default: "standard",
     required: true,
-  },
-  created_at: {
-    type: Date,
-    default: Date.now,
   },
 });
 
-const Partner = mongoose.model("Partner", PartnerSchema);
+const Partner = mongoose.model("Partner", partnerSchema);
 
 module.exports = Partner;

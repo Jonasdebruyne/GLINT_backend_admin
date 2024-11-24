@@ -5,7 +5,7 @@ const Partner = require("../../../models/api/v1/Partner");
 const create = async (req, res) => {
   const { name, address, contact_email, contact_phone, package } = req.body;
 
-  // Validate required fields
+  // Validate required fields (only name and package)
   if (!name || !package) {
     return res.status(400).json({
       status: "error",
@@ -14,12 +14,12 @@ const create = async (req, res) => {
   }
 
   try {
-    // Create a new partner
+    // Create a new partner object, handle optional fields (defaults to empty or null if not provided)
     const newPartner = new Partner({
       name,
-      address: address || {},
-      contact_email: contact_email || null,
-      contact_phone: contact_phone || null,
+      address: address || {}, // Defaults to empty object if address is not provided
+      contact_email: contact_email || null, // Defaults to null if contact_email is not provided
+      contact_phone: contact_phone || null, // Defaults to null if contact_phone is not provided
       package,
     });
 
