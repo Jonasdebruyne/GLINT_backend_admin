@@ -3,7 +3,7 @@ const User = require("../../../models/api/v1/User");
 const Partner = require("../../../models/api/v1/Partner");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
-
+n;
 const signup = async (req, res) => {
   try {
     const {
@@ -128,7 +128,7 @@ const login = async (req, res) => {
 
     // Authenticate user
     const authResult = await User.authenticate()(email, password);
-    const user = authResult.user; // Haal de user uit authResult
+    const user = authResult.user;
 
     if (!user) {
       return res.status(401).json({
@@ -137,19 +137,30 @@ const login = async (req, res) => {
       });
     }
 
-    // Find the partner details to get the companyId
-    const partner = await Partner.findOne({ name: user.company });
-    if (!partner) {
-      return res.status(400).json({ message: "Partner not found" });
+    // Handle user.company (may be null)
+    let companyId = null;
+
+    if (user.company) {
+      const partner = await Partner.findOne({ name: user.company });
+
+      if (!partner) {
+        return res.status(400).json({
+          status: "failed",
+          message: `Partner with name '${user.company}' not found`,
+        });
+      }
+
+      companyId = partner._id; // Partner found, assign companyId
     }
 
+    // Generate JWT token
     const token = jwt.sign(
       {
         userId: user._id,
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
-        companyId: partner._id, // Add companyId to the token payload
+        companyId: companyId, // Can be null
       },
       "MyVerySecretWord",
       { expiresIn: "1h" }
