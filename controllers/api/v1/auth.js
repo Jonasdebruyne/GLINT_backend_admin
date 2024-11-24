@@ -3,7 +3,7 @@ const User = require("../../../models/api/v1/User");
 const Partner = require("../../../models/api/v1/Partner");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
-n;
+
 const signup = async (req, res) => {
   try {
     const {
