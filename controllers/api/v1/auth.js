@@ -137,13 +137,10 @@ const login = async (req, res) => {
       });
     }
 
-    // If company is set, try to find the partner for companyId
-    let companyId = null;
-    if (user.company) {
-      const partner = await Partner.findOne({ name: user.company });
-      if (partner) {
-        companyId = partner._id;
-      }
+    // Find the partner details to get the companyId
+    const partner = await Partner.findOne({ name: user.company });
+    if (!partner) {
+      return res.status(400).json({ message: "Partner not found" });
     }
 
     const token = jwt.sign(
@@ -152,7 +149,7 @@ const login = async (req, res) => {
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
-        companyId: companyId, // Add companyId to the token if found
+        companyId: partner._id, // Add companyId to the token payload
       },
       "MyVerySecretWord",
       { expiresIn: "1h" }
@@ -359,31 +356,35 @@ const destroy = async (req, res, next) => {
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
-  try {
-    console.log("Received forgot password request for email:", email); // Log het ontvangen emailadres
+  // Controleer of het e-mailadres is meegegeven
+  if (!email) {
+    return res.status(400).json({ message: "E-mail is verplicht." });
+  }
 
-    // Zoeken naar de gebruiker op basis van email
+  // Controleer of het e-mailadres een geldig formaat heeft
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: "Ongeldig e-mailadres." });
+  }
+
+  try {
+    // Zoek de gebruiker op basis van het e-mailadres
     const user = await User.findOne({ email });
     if (!user) {
-      console.log("User not found for email:", email); // Log als de gebruiker niet gevonden is
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "Gebruiker niet gevonden" });
     }
-    console.log("User found:", user); // Log de gevonden gebruiker
 
-    // Genereer verificatiecode
+    // Genereer een verificatiecode en stel de vervaltijd in
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    console.log("Generated verification code:", verificationCode); // Log de gegenereerde verificatiecode
-
     user.resetCode = verificationCode;
     user.resetCodeExpiration = Date.now() + 3600000; // 1 uur geldig
     await user.save();
-    console.log("User after saving reset code:", user); // Log de gebruiker na het opslaan van de reset code
 
-    // Nodemailer configuratie voor verzenden van e-mail
+    // Stel de e-mail in om de verificatiecode naar de gebruiker te sturen
     const transporter = nodemailer.createTransport({
       host: "smtp-auth.mailprotect.be",
       port: 587,
-      secure: false,
+      secure: false, // gebruik TLS
       auth: {
         user: process.env.COMBELL_EMAIL,
         pass: process.env.COMBELL_PASSWORD,
@@ -410,15 +411,17 @@ const forgotPassword = async (req, res) => {
       `,
     };
 
-    console.log("Sending email to:", user.email); // Log de e-mail die wordt verzonden
-
+    // Verstuur de e-mail
     await transporter.sendMail(mailOptions);
-    console.log("Verification code email sent successfully."); // Log succesmelding voor e-mail
 
-    res.status(200).json({ message: "Verificatiecode verzonden" });
+    // Bevestig dat de verificatiecode succesvol is verzonden
+    return res.status(200).json({ message: "Verificatiecode verzonden" });
   } catch (error) {
-    console.error("Fout bij wachtwoord reset:", error); // Log eventuele foutmeldingen
-    res.status(500).json({ message: "Server error" });
+    console.error("Fout bij wachtwoord reset:", error);
+    // Als er een fout optreedt bij het versturen van de e-mail of het verwerken van de aanvraag
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
