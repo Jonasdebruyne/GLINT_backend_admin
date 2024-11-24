@@ -360,11 +360,6 @@ const forgotPassword = async (req, res) => {
     return res.status(400).json({ message: "E-mail is verplicht." });
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: "Ongeldig e-mailadres." });
-  }
-
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -373,8 +368,11 @@ const forgotPassword = async (req, res) => {
 
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
     user.resetCode = verificationCode;
-    user.resetCodeExpiration = Date.now() + 3600000;
+    user.resetCodeExpiration = Date.now() + 3600000; // 1 uur geldig
     await user.save();
+
+    console.log(process.env.COMBELL_EMAIL);
+    console.log(process.env.COMBELL_PASSWORD);
 
     const transporter = nodemailer.createTransport({
       host: "smtp-auth.mailprotect.be",
@@ -406,14 +404,12 @@ const forgotPassword = async (req, res) => {
       `,
     };
 
-    // Verstuur de e-mail
     await transporter.sendMail(mailOptions);
-
     return res.status(200).json({ message: "Verificatiecode verzonden" });
   } catch (error) {
     console.error("Fout bij wachtwoord reset:", error);
 
-    // Controleer of de fout gerelateerd is aan de SMTP-authenticatie
+    // Specifieke fout voor ontbrekende inloggegevens
     if (error.code === "EAUTH") {
       return res.status(500).json({
         message: "E-mailconfiguratie is fout, controleer je SMTP-instellingen.",
@@ -421,7 +417,6 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Algemene serverfout als de fout niet specifiek SMTP is
     return res
       .status(500)
       .json({ message: "Server error", error: error.message });
