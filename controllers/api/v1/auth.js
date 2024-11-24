@@ -137,10 +137,13 @@ const login = async (req, res) => {
       });
     }
 
-    // Find the partner details to get the companyId
-    const partner = await Partner.findOne({ name: user.company });
-    if (!partner) {
-      return res.status(400).json({ message: "Partner not found" });
+    // If company is set, try to find the partner for companyId
+    let companyId = null;
+    if (user.company) {
+      const partner = await Partner.findOne({ name: user.company });
+      if (partner) {
+        companyId = partner._id;
+      }
     }
 
     const token = jwt.sign(
@@ -149,7 +152,7 @@ const login = async (req, res) => {
         firstname: user.firstname,
         lastname: user.lastname,
         role: user.role,
-        companyId: partner._id, // Add companyId to the token payload
+        companyId: companyId, // Add companyId to the token if found
       },
       "MyVerySecretWord",
       { expiresIn: "1h" }
