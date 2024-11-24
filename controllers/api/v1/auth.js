@@ -356,35 +356,30 @@ const destroy = async (req, res, next) => {
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
-  // Controleer of het e-mailadres is meegegeven
   if (!email) {
     return res.status(400).json({ message: "E-mail is verplicht." });
   }
 
-  // Controleer of het e-mailadres een geldig formaat heeft
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: "Ongeldig e-mailadres." });
   }
 
   try {
-    // Zoek de gebruiker op basis van het e-mailadres
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "Gebruiker niet gevonden" });
     }
 
-    // Genereer een verificatiecode en stel de vervaltijd in
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
     user.resetCode = verificationCode;
-    user.resetCodeExpiration = Date.now() + 3600000; // 1 uur geldig
+    user.resetCodeExpiration = Date.now() + 3600000;
     await user.save();
 
-    // Stel de e-mail in om de verificatiecode naar de gebruiker te sturen
     const transporter = nodemailer.createTransport({
       host: "smtp-auth.mailprotect.be",
       port: 587,
-      secure: false, // gebruik TLS
+      secure: false,
       auth: {
         user: process.env.COMBELL_EMAIL,
         pass: process.env.COMBELL_PASSWORD,
@@ -414,11 +409,19 @@ const forgotPassword = async (req, res) => {
     // Verstuur de e-mail
     await transporter.sendMail(mailOptions);
 
-    // Bevestig dat de verificatiecode succesvol is verzonden
     return res.status(200).json({ message: "Verificatiecode verzonden" });
   } catch (error) {
     console.error("Fout bij wachtwoord reset:", error);
-    // Als er een fout optreedt bij het versturen van de e-mail of het verwerken van de aanvraag
+
+    // Controleer of de fout gerelateerd is aan de SMTP-authenticatie
+    if (error.code === "EAUTH") {
+      return res.status(500).json({
+        message: "E-mailconfiguratie is fout, controleer je SMTP-instellingen.",
+        error: error.message,
+      });
+    }
+
+    // Algemene serverfout als de fout niet specifiek SMTP is
     return res
       .status(500)
       .json({ message: "Server error", error: error.message });
