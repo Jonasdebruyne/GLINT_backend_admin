@@ -232,9 +232,13 @@ const update = async (req, res) => {
 
     let uploadedImages = [];
     for (const image of images) {
-      if (image.startsWith("https://res.cloudinary.com")) {
+      if (
+        typeof image === "string" &&
+        image.startsWith("https://res.cloudinary.com")
+      ) {
         uploadedImages.push(image);
       } else {
+        // Zorg ervoor dat image een geldige URL is of een string die je kunt uploaden naar Cloudinary
         const result = await cloudinary.uploader.upload(image, {
           folder: "Odette Lunettes",
           resource_type: "auto",
