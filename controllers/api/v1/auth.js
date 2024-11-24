@@ -360,16 +360,26 @@ const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
+    console.log("Received forgot password request for email:", email); // Log het ontvangen emailadres
+
+    // Zoeken naar de gebruiker op basis van email
     const user = await User.findOne({ email });
     if (!user) {
+      console.log("User not found for email:", email); // Log als de gebruiker niet gevonden is
       return res.status(404).json({ message: "User not found" });
     }
+    console.log("User found:", user); // Log de gevonden gebruiker
 
+    // Genereer verificatiecode
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    console.log("Generated verification code:", verificationCode); // Log de gegenereerde verificatiecode
+
     user.resetCode = verificationCode;
     user.resetCodeExpiration = Date.now() + 3600000; // 1 uur geldig
     await user.save();
+    console.log("User after saving reset code:", user); // Log de gebruiker na het opslaan van de reset code
 
+    // Nodemailer configuratie voor verzenden van e-mail
     const transporter = nodemailer.createTransport({
       host: "smtp-auth.mailprotect.be",
       port: 587,
@@ -400,10 +410,14 @@ const forgotPassword = async (req, res) => {
       `,
     };
 
+    console.log("Sending email to:", user.email); // Log de e-mail die wordt verzonden
+
     await transporter.sendMail(mailOptions);
+    console.log("Verification code email sent successfully."); // Log succesmelding voor e-mail
+
     res.status(200).json({ message: "Verificatiecode verzonden" });
   } catch (error) {
-    console.error("Fout bij wachtwoord reset:", error);
+    console.error("Fout bij wachtwoord reset:", error); // Log eventuele foutmeldingen
     res.status(500).json({ message: "Server error" });
   }
 };
