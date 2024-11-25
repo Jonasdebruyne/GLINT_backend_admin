@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Partner = require("../../../models/api/v1/Partner");
 const cloudinary = require("cloudinary").v2;
+const fs = require("fs"); // We gebruiken fs om het JSON-bestand lokaal te maken
 require("dotenv").config();
 
 // Configure Cloudinary
@@ -21,29 +22,53 @@ const create = async (req, res) => {
   }
 
   try {
-    // Hoofdmap voor de partner, hardcoded op basis van de 'name' die wordt meegegeven
-    const cloudinaryFolder = name;
+    // Hardcoded huisstijlgegevens
+    const primaryColor = "#FF5733"; // Primaire kleur
+    const secondaryColor = "#C70039"; // Secundaire kleur
+    const fonts = [
+      {
+        name: "font1",
+        path: "https://metejoor.be/assets/fonts/DINCondensedWeb.woff2",
+      },
+      {
+        name: "font2",
+        path: "https://metejoor.be/assets/fonts/DINCondensedWeb.woff2",
+      },
+    ]; // Fonts
+    const logoPath =
+      "https://img-cdn.pixlr.com/image-generator/history/65bb506dcb310754719cf81f/ede935de-1138-4f66-8ed7-44bd16efc709/medium.webp"; // Logo
+    const backgroundImagePath =
+      "https://img-cdn.pixlr.com/image-generator/history/65bb506dcb310754719cf81f/ede935de-1138-4f66-8ed7-44bd16efc709/medium.webp"; // Achtergrondafbeelding
+
+    // Hoofdmap voor de partner
+    const cloudinaryFolder = `${name}`;
 
     // Submap "Huisstijl" in de hoofdmap
     const huisstijlFolder = `${cloudinaryFolder}/Huisstijl`;
 
-    // Gebruik een dummy bestand (transparante afbeelding) om de mappenstructuur te creëren
-    const dummyImageURL =
-      "https://static.vecteezy.com/vite/assets/photo-masthead-375-BoK_p8LG.webp";
+    // JSON object voor huisstijldata
+    const huisstijlData = {
+      primaryColor,
+      secondaryColor,
+      fonts,
+      logo: logoPath,
+      backgroundImage: backgroundImagePath,
+    };
 
-    // Maak de hoofdmap aan in Cloudinary
-    await cloudinary.uploader.upload(dummyImageURL, {
-      folder: cloudinaryFolder,
-      public_id: "placeholder", // Dummy bestand
-    });
+    // Zet de huisstijlgegevens om in een JSON-bestand
+    const huisstijlJson = JSON.stringify(huisstijlData);
 
-    // Maak de submap "Huisstijl" aan in Cloudinary
-    await cloudinary.uploader.upload(dummyImageURL, {
+    // Sla het bestand op lokaal voordat we het uploaden naar Cloudinary
+    fs.writeFileSync("huisstijl.json", huisstijlJson);
+
+    // Upload het JSON-bestand naar Cloudinary
+    const uploadResult = await cloudinary.uploader.upload("huisstijl.json", {
       folder: huisstijlFolder,
-      public_id: "placeholder", // Dummy bestand
+      resource_type: "raw", // Aangeven dat het een raw bestand is (geen afbeelding of video)
+      public_id: "huisstijl_data", // Specifieke public_id voor het huisstijlbestand
     });
 
-    // Sla de partner op in de database
+    // Maak de partner aan in de database
     const newPartner = new Partner({
       name,
       address: address || {},
@@ -54,13 +79,22 @@ const create = async (req, res) => {
 
     await newPartner.save();
 
+    // Stuur succesresponse terug
     res.status(201).json({
       status: "success",
       data: {
         partner: newPartner,
         folders: {
-          main: cloudinaryFolder, // Hoofdmap naam
-          huisstijl: huisstijlFolder, // Submap naam
+          main: cloudinaryFolder,
+          huisstijl: huisstijlFolder,
+        },
+        huisstijlData: {
+          primaryColor,
+          secondaryColor,
+          fonts,
+          logo: logoPath,
+          backgroundImage: backgroundImagePath,
+          huisstijlJsonUrl: uploadResult.secure_url, // URL van het geüploade JSON bestand
         },
       },
     });
