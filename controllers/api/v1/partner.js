@@ -1,11 +1,18 @@
 const mongoose = require("mongoose");
 const Partner = require("../../../models/api/v1/Partner");
+const cloudinary = require("cloudinary").v2;
+require("dotenv").config();
 
-// Create a new partner
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const create = async (req, res) => {
   const { name, address, contact_email, contact_phone, package } = req.body;
 
-  // Validate required fields (only name and package)
   if (!name || !package) {
     return res.status(400).json({
       status: "error",
@@ -14,21 +21,48 @@ const create = async (req, res) => {
   }
 
   try {
-    // Create a new partner object, handle optional fields (defaults to empty or null if not provided)
+    // Hoofdmap voor de partner, hardcoded op basis van de 'name' die wordt meegegeven
+    const cloudinaryFolder = name;
+
+    // Submap "Huisstijl" in de hoofdmap
+    const huisstijlFolder = `${cloudinaryFolder}/Huisstijl`;
+
+    // Gebruik een dummy bestand (transparante afbeelding) om de mappenstructuur te creëren
+    const dummyImageURL =
+      "https://static.vecteezy.com/vite/assets/photo-masthead-375-BoK_p8LG.webp";
+
+    // Maak de hoofdmap aan in Cloudinary
+    await cloudinary.uploader.upload(dummyImageURL, {
+      folder: cloudinaryFolder,
+      public_id: "placeholder", // Dummy bestand
+    });
+
+    // Maak de submap "Huisstijl" aan in Cloudinary
+    await cloudinary.uploader.upload(dummyImageURL, {
+      folder: huisstijlFolder,
+      public_id: "placeholder", // Dummy bestand
+    });
+
+    // Sla de partner op in de database
     const newPartner = new Partner({
       name,
-      address: address || {}, // Defaults to empty object if address is not provided
-      contact_email: contact_email || null, // Defaults to null if contact_email is not provided
-      contact_phone: contact_phone || null, // Defaults to null if contact_phone is not provided
+      address: address || {},
+      contact_email: contact_email || null,
+      contact_phone: contact_phone || null,
       package,
     });
 
-    // Save the partner to the database
     await newPartner.save();
 
     res.status(201).json({
       status: "success",
-      data: { partner: newPartner },
+      data: {
+        partner: newPartner,
+        folders: {
+          main: cloudinaryFolder, // Hoofdmap naam
+          huisstijl: huisstijlFolder, // Submap naam
+        },
+      },
     });
   } catch (err) {
     console.error("Error creating partner:", err);
