@@ -23,15 +23,17 @@ const create = async (req, res) => {
 
   try {
     // Hardcoded huisstijlgegevens
-    const primaryColor = "#FF5733"; // Primaire kleur
-    const secondaryColor = "#C70039"; // Secundaire kleur
+    const primaryColor = "#9747ff"; // Primaire kleur
+    const secondaryColor = "#000000"; // Secundaire kleur
+    const titleColor = "#ffffff"; // Secundaire kleur
+    const colorForButtons = "#0071e3"; // Secundaire kleur
     const fonts = [
       {
-        name: "font1",
+        name: "DM Sans",
         path: "https://metejoor.be/assets/fonts/DINCondensedWeb.woff2",
       },
       {
-        name: "font2",
+        name: "Syne",
         path: "https://metejoor.be/assets/fonts/DINCondensedWeb.woff2",
       },
     ]; // Fonts
@@ -50,6 +52,8 @@ const create = async (req, res) => {
     const huisstijlData = {
       primaryColor,
       secondaryColor,
+      titleColor,
+      colorForButtons,
       fonts,
       logo: logoPath,
       backgroundImage: backgroundImagePath,
