@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema({
-  productCode: {
-    type: String,
-    required: true,
+  productId: {
+    // Verander van productCode naar productId
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product", // Verbindt met het Product model
+    required: true, // Maak dit veld verplicht
   },
   lacesColor: {
     type: String,

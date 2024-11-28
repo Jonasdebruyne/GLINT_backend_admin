@@ -1,17 +1,19 @@
 const Order = require("../../../models/api/v1/Order");
 const Product = require("../../../models/api/v1/Product");
 
-const create = async (req, res) => {
-  const { lacesColor, soleColor, insideColor, outsideColor, productCode } =
-    req.body;
+const mongoose = require("mongoose");
 
-  // Validate required fields
+const create = async (req, res) => {
+  const { lacesColor, soleColor, insideColor, outsideColor } = req.body;
+  const productId = req.params.productId; // Haal productId uit de URL-parameter
+
+  // Valideer de verplichte velden
   if (
     !lacesColor ||
     !soleColor ||
     !insideColor ||
     !outsideColor ||
-    !productCode
+    !productId
   ) {
     return res.status(400).json({
       status: "error",
@@ -19,18 +21,29 @@ const create = async (req, res) => {
     });
   }
 
+  // Valideer of productId een geldig ObjectId is
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    return res.status(400).json({
+      status: "error",
+      message: "Invalid productId. It must be a valid 24-character hex string.",
+    });
+  }
+
   try {
-    // Create new order
+    // Zet productId om naar ObjectId
+    const validProductId = new mongoose.Types.ObjectId(productId); // Gebruik 'new' om een ObjectId te creëren
+
+    // Maak een nieuwe bestelling aan
     const newOrder = new Order({
-      productCode,
+      productId: validProductId, // Gebruik de geconverteerde productId
       lacesColor,
       soleColor,
       insideColor,
       outsideColor,
-      orderStatus: "pending", // Default status
+      orderStatus: "pending", // Standaard status
     });
 
-    // Save the order to the database
+    // Sla de bestelling op in de database
     await newOrder.save();
 
     res.status(201).json({
