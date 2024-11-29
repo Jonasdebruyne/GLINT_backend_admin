@@ -4,7 +4,21 @@ const Product = require("../../../models/api/v1/Product");
 const mongoose = require("mongoose");
 
 const create = async (req, res) => {
-  const { lacesColor, soleColor, insideColor, outsideColor } = req.body;
+  const {
+    lacesColor,
+    soleColor,
+    insideColor,
+    outsideColor,
+    firstName,
+    lastName,
+    email,
+    street,
+    houseNumber,
+    postalCode,
+    city,
+    message,
+  } = req.body;
+
   const productId = req.params.productId; // Haal productId uit de URL-parameter
 
   // Valideer de verplichte velden
@@ -13,7 +27,14 @@ const create = async (req, res) => {
     !soleColor ||
     !insideColor ||
     !outsideColor ||
-    !productId
+    !productId ||
+    !firstName ||
+    !lastName ||
+    !email ||
+    !street ||
+    !houseNumber ||
+    !postalCode ||
+    !city
   ) {
     return res.status(400).json({
       status: "error",
@@ -31,16 +52,28 @@ const create = async (req, res) => {
 
   try {
     // Zet productId om naar ObjectId
-    const validProductId = new mongoose.Types.ObjectId(productId); // Gebruik 'new' om een ObjectId te creëren
+    const validProductId = new mongoose.Types.ObjectId(productId);
 
     // Maak een nieuwe bestelling aan
     const newOrder = new Order({
-      productId: validProductId, // Gebruik de geconverteerde productId
+      productId: validProductId,
       lacesColor,
       soleColor,
       insideColor,
       outsideColor,
       orderStatus: "pending", // Standaard status
+      customer: {
+        firstName,
+        lastName,
+        email,
+        address: {
+          street,
+          houseNumber,
+          postalCode,
+          city,
+        },
+        message,
+      },
     });
 
     // Sla de bestelling op in de database
@@ -62,16 +95,15 @@ const create = async (req, res) => {
 
 const index = async (req, res) => {
   try {
-    const { orderStatus, productId } = req.query; // Verwacht 'productId' in plaats van 'productCode'
+    const { orderStatus, productId } = req.query; // Haal filters uit de queryparameters
     const filter = {};
 
-    // Pas de filters aan op basis van de queryparameters
+    // Voeg filters toe als ze bestaan
     if (orderStatus) {
       filter.orderStatus = orderStatus;
     }
     if (productId) {
-      // Wijzig dit naar productId
-      filter.productId = productId; // Verander hier naar productId
+      filter.productId = productId;
     }
 
     // Zoek orders met de toegevoegde filters
@@ -79,9 +111,10 @@ const index = async (req, res) => {
 
     res.json({
       status: "success",
-      data: { orders },
+      data: { orders }, // Geeft een lijst van orders terug met alle velden
     });
   } catch (error) {
+    console.error("Error retrieving orders:", error.message);
     res.status(500).json({
       status: "error",
       message: "Could not retrieve orders",
@@ -101,7 +134,7 @@ const show = async (req, res) => {
       });
     }
 
-    // Zoek de order met orderId in plaats van productCode
+    // Zoek de order met orderId
     const order = await Order.findById(orderId);
 
     if (!order) {
@@ -111,7 +144,7 @@ const show = async (req, res) => {
       });
     }
 
-    // Stuur de gevonden order als JSON
+    // Stuur de gevonden order inclusief klantgegevens als JSON
     res.json({
       status: "success",
       data: { order },
