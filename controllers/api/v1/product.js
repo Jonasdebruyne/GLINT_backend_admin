@@ -20,13 +20,22 @@ const create = async (req, res) => {
       typeOfProduct,
       description,
       brand,
-      colors,
       sizeOptions,
       images,
       lacesColor,
-      soleColor,
+      lacesTexture,
+      soleBottomColor,
+      soleBottomTexture,
+      soleTopColor,
+      soleTopTexture,
       insideColor,
-      outsideColor,
+      insideTexture,
+      outside1Color,
+      outside1Texture,
+      outside2Color,
+      outside2Texture,
+      outside3Color,
+      outside3Texture,
     } = req.body;
 
     // Ensure all required fields are present
@@ -71,13 +80,22 @@ const create = async (req, res) => {
       typeOfProduct,
       description,
       brand,
-      colors,
       sizeOptions,
       images,
       lacesColor,
-      soleColor,
+      lacesTexture,
+      soleBottomColor,
+      soleBottomTexture,
+      soleTopColor,
+      soleTopTexture,
       insideColor,
-      outsideColor,
+      insideTexture,
+      outside1Color,
+      outside1Texture,
+      outside2Color,
+      outside2Texture,
+      outside3Color,
+      outside3Texture,
       partnerId,
     });
 
@@ -195,13 +213,22 @@ const update = async (req, res) => {
     typeOfProduct = "sneaker",
     description,
     brand,
-    colors,
     sizeOptions,
     images = [],
     lacesColor,
-    soleColor,
+    lacesTexture,
+    soleBottomColor,
+    soleBottomTexture,
+    soleTopColor,
+    soleTopTexture,
     insideColor,
-    outsideColor,
+    insideTexture,
+    outside1Color,
+    outside1Texture,
+    outside2Color,
+    outside2Texture,
+    outside3Color,
+    outside3Texture,
   } = product;
 
   if (
@@ -210,12 +237,22 @@ const update = async (req, res) => {
     !productPrice ||
     !description ||
     !brand ||
-    !colors ||
     !sizeOptions ||
     !lacesColor ||
-    !soleColor ||
+    !lacesTexture ||
+    !soleBottomColor ||
+    !soleBottomTexture ||
+    !soleTopColor ||
+    !soleTopTexture ||
     !insideColor ||
-    !outsideColor
+    !insideTexture ||
+    !outside1Color ||
+    !outside1Texture ||
+    !outside1Texture ||
+    !outside2Color ||
+    !outside2Texture ||
+    !outside3Color ||
+    !outside3Texture
   ) {
     return res.status(400).json({
       status: "error",
@@ -226,9 +263,12 @@ const update = async (req, res) => {
   try {
     // Valideer de kleurarrays
     validateColorArray(lacesColor, "lacesColor");
-    validateColorArray(soleColor, "soleColor");
+    validateColorArray(soleBottomColor, "soleBottomColor");
+    validateColorArray(soleTopColor, "soleTopColor");
     validateColorArray(insideColor, "insideColor");
-    validateColorArray(outsideColor, "outsideColor");
+    validateColorArray(outside1Color, "outside1Color");
+    validateColorArray(outside2Color, "outside2Color");
+    validateColorArray(outside3Color, "outside3Color");
 
     let uploadedImages = [];
     for (const image of images) {
@@ -257,13 +297,22 @@ const update = async (req, res) => {
         typeOfProduct,
         description,
         brand,
-        colors,
         sizeOptions,
         images: uploadedImages,
         lacesColor,
-        soleColor,
+        lacesTexture,
+        soleBottomColor,
+        soleBottomTexture,
+        soleTopColor,
+        soleTopTexture,
         insideColor,
-        outsideColor,
+        insideTexture,
+        outside1Color,
+        outside1Texture,
+        outside2Color,
+        outside2Texture,
+        outside3Color,
+        outside3Texture,
       },
       { new: true, runValidators: true }
     );

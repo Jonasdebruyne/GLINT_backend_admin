@@ -28,10 +28,6 @@ const ProductSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  colors: {
-    type: [String],
-    required: true,
-  },
   sizeOptions: {
     type: [String],
     required: true,
@@ -44,7 +40,23 @@ const ProductSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
-  soleColor: {
+  lacesTexture: {
+    type: [String],
+    required: true,
+  },
+  soleBottomColor: {
+    type: [String],
+    required: true,
+  },
+  soleBottomTexture: {
+    type: [String],
+    required: true,
+  },
+  soleTopColor: {
+    type: [String],
+    required: true,
+  },
+  soleTopTexture: {
     type: [String],
     required: true,
   },
@@ -52,14 +64,37 @@ const ProductSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
-  outsideColor: {
+  insideTexture: {
+    type: [String],
+    required: true,
+  },
+  outside1Color: {
+    type: [String],
+    required: true,
+  },
+  outside1Texture: {
+    type: [String],
+    required: true,
+  },
+  outside2Color: {
+    type: [String],
+    required: true,
+  },
+  outside2Texture: {
+    type: [String],
+    required: true,
+  },
+  outside3Color: {
+    type: [String],
+    required: true,
+  },
+  outside3Texture: {
     type: [String],
     required: true,
   },
   partnerId: {
-    // Nieuwe veld voor partnerId
-    type: mongoose.Schema.Types.ObjectId, // Gebruik ObjectId als het een referentie is naar een ander model, zoals Partner.
-    required: true, // Aannemende dat dit een verplicht veld is
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
   },
 });
 
