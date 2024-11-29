@@ -39,9 +39,6 @@ userSchema.methods.isValidPassword = async function (password) {
   return await this.authenticate(password); // Gebruik de authenticate functie van passport-local-mongoose
 };
 
-// Verwijder de eigen setPassword-methode
-// De plugin voegt deze al toe, je hoeft hem dus niet opnieuw te definiëren
-
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
