@@ -6,9 +6,19 @@ const mongoose = require("mongoose");
 const create = async (req, res) => {
   const {
     lacesColor,
-    soleColor,
+    lacesTexture,
+    soleBottomColor,
+    soleBottomTexture,
+    soleTopColor,
+    soleTopTexture,
     insideColor,
-    outsideColor,
+    insideTexture,
+    outside1Color,
+    outside1Texture,
+    outside2Color,
+    outside2Texture,
+    outside3Color,
+    outside3Texture,
     firstName,
     lastName,
     email,
@@ -24,9 +34,12 @@ const create = async (req, res) => {
   // Valideer de verplichte velden
   if (
     !lacesColor ||
-    !soleColor ||
+    !soleBottomColor ||
+    !soleTopColor ||
     !insideColor ||
-    !outsideColor ||
+    !outside1Color ||
+    !outside2Color ||
+    !outside3Color ||
     !productId ||
     !firstName ||
     !lastName ||
@@ -51,16 +64,25 @@ const create = async (req, res) => {
   }
 
   try {
-    // Zet productId om naar ObjectId
     const validProductId = new mongoose.Types.ObjectId(productId);
 
     // Maak een nieuwe bestelling aan
     const newOrder = new Order({
       productId: validProductId,
       lacesColor,
-      soleColor,
+      lacesTexture,
+      soleBottomColor,
+      soleBottomTexture,
+      soleTopColor,
+      soleTopTexture,
       insideColor,
-      outsideColor,
+      insideTexture,
+      outside1Color,
+      outside1Texture,
+      outside2Color,
+      outside2Texture,
+      outside3Color,
+      outside3Texture,
       orderStatus: "pending", // Standaard status
       customer: {
         firstName,
@@ -106,12 +128,12 @@ const index = async (req, res) => {
       filter.productId = productId;
     }
 
-    // Zoek orders met de toegevoegde filters
-    const orders = await Order.find(filter);
+    // Zoek orders met de toegevoegde filters en populate productId
+    const orders = await Order.find(filter).populate("productId");
 
     res.json({
       status: "success",
-      data: { orders }, // Geeft een lijst van orders terug met alle velden
+      data: { orders },
     });
   } catch (error) {
     console.error("Error retrieving orders:", error.message);
@@ -134,8 +156,8 @@ const show = async (req, res) => {
       });
     }
 
-    // Zoek de order met orderId
-    const order = await Order.findById(orderId);
+    // Zoek de order met orderId en populate de productId
+    const order = await Order.findById(orderId).populate("productId");
 
     if (!order) {
       return res.status(404).json({
@@ -144,7 +166,6 @@ const show = async (req, res) => {
       });
     }
 
-    // Stuur de gevonden order inclusief klantgegevens als JSON
     res.json({
       status: "success",
       data: { order },
@@ -162,16 +183,34 @@ const show = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { orderId } = req.params; // Verwacht orderId in de URL
-    const { orderStatus, lacesColor, soleColor, insideColor, outsideColor } =
-      req.body;
+    const {
+      orderStatus,
+      lacesColor,
+      lacesTexture,
+      soleBottomColor,
+      soleBottomTexture,
+      soleTopColor,
+      soleTopTexture,
+      insideColor,
+      insideTexture,
+      outside1Color,
+      outside1Texture,
+      outside2Color,
+      outside2Texture,
+      outside3Color,
+      outside3Texture,
+    } = req.body;
 
     // Validatie van de velden
     if (
       !orderStatus ||
       !lacesColor ||
-      !soleColor ||
+      !soleBottomColor ||
+      !soleTopColor ||
       !insideColor ||
-      !outsideColor
+      !outside1Color ||
+      !outside2Color ||
+      !outside3Color
     ) {
       return res.status(400).json({
         status: "error",
@@ -192,9 +231,19 @@ const update = async (req, res) => {
     // Werk de order bij
     order.orderStatus = orderStatus;
     order.lacesColor = lacesColor;
-    order.soleColor = soleColor;
+    order.lacesTexture = lacesTexture;
+    order.soleBottomColor = soleBottomColor;
+    order.soleBottomTexture = soleBottomTexture;
+    order.soleTopColor = soleTopColor;
+    order.soleTopTexture = soleTopTexture;
     order.insideColor = insideColor;
-    order.outsideColor = outsideColor;
+    order.insideTexture = insideTexture;
+    order.outside1Color = outside1Color;
+    order.outside1Texture = outside1Texture;
+    order.outside2Color = outside2Color;
+    order.outside2Texture = outside2Texture;
+    order.outside3Color = outside3Color;
+    order.outside3Texture = outside3Texture;
 
     // Sla de gewijzigde order op
     await order.save();
