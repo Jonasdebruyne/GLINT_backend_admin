@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const Product = require("../../../models/api/v1/Product");
-require("dotenv").config(); // Ensure dotenv is loaded first
+require("dotenv").config(); // Zorg ervoor dat je dotenv geladen is
 const cloudinary = require("cloudinary").v2;
 const mongoose = require("mongoose");
 
@@ -13,6 +13,7 @@ cloudinary.config({
 
 const create = async (req, res) => {
   try {
+    // Extracting product data from the request body
     const {
       productCode,
       productName,
@@ -53,7 +54,7 @@ const create = async (req, res) => {
     }
 
     // Extract token from Authorization header
-    const token = req.headers.authorization?.split(" ")[1];
+    const token = req.headers.authorization?.split(" ")[1]; // Expecting "Bearer <token>"
 
     if (!token) {
       return res
@@ -64,15 +65,20 @@ const create = async (req, res) => {
     // Verify and decode the JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET); // Make sure to use your secret key here
+      decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify using the secret key
     } catch (err) {
       return res.status(401).json({ message: "Invalid or expired token" });
     }
 
     // Extract partnerId from the decoded token
     const partnerId = decoded.companyId;
+    if (!partnerId) {
+      return res
+        .status(401)
+        .json({ message: "Token does not contain valid companyId" });
+    }
 
-    // Create new product
+    // Create a new product object
     const newProduct = new Product({
       productCode,
       productName,
@@ -96,21 +102,23 @@ const create = async (req, res) => {
       outside2Texture,
       outside3Color,
       outside3Texture,
-      partnerId,
+      partnerId, // associate the partnerId with the product
     });
 
     // Save the new product to the database
     await newProduct.save();
 
+    // Respond with the created product
     res.status(201).json({
       status: "success",
       data: newProduct,
     });
   } catch (error) {
     console.error("Error creating product:", error);
-    res
-      .status(500)
-      .json({ message: "An error occurred while creating the product." });
+    res.status(500).json({
+      message: "An error occurred while creating the product.",
+      error: error.message,
+    });
   }
 };
 
